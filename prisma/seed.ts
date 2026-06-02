@@ -78,7 +78,7 @@ async function main() {
       sodium: 2800,
       waterBodyType: 'flowing',
       landUse: 'coastal_beach',
-      notes: 'Deeper water channel, high oxygen from water动',
+      notes: 'Deeper water channel, high oxygen from tidal flow',
       status: 'approved',
     },
     {

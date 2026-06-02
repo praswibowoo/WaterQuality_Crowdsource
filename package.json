@@ -1,11 +1,10 @@
 {
   "name": "water-quality-crowdsource",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "workspaces": [
     "web",
-    "api",
-    "services/ai"
+    "api"
   ],
   "scripts": {
     "dev": "npm run dev --workspace=web & npm run dev --workspace=api & wait",

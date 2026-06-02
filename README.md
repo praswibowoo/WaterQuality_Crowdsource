@@ -3,10 +3,10 @@
 A **Progressive Web App (PWA)** for crowdsourcing water-quality data collection at Mangrove Wonorejo, Surabaya. Field researchers and citizen scientists can submit water sample measurements, view data on an interactive map, and track trends over time — all with offline support.
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue)
-![Status](https://img.shields.io/badge/status-production%20ready-brightgreen)
-![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
 ---
+
+
 
 ## Prerequisites
 
@@ -114,12 +114,6 @@ This will:
 > npm run db:seed
 > ```
 
-> Alternatively, use the workspace scripts defined in root `package.json`:
-> ```bash
-> npm run db:migrate
-> npm run db:seed
-> ```
-
 ### 4. Start the backend
 
 ```bash
@@ -141,7 +135,7 @@ Expected response:
 {
   "status": "ok",
   "timestamp": "2026-05-25T...",
-  "checks": { "database": "up", "postgis": "3.6 USE_GEOS=1...", "sessions": "up" }
+  "checks": { "database": "up", "postgis": "up", "sessions": "up" }
 }
 ```
 
@@ -361,7 +355,7 @@ water-quality-crowdsource/
 - **Server-side filtering & sorting** — Filter samples by status, author name, and date range. Sort by measurement parameters. All filtering happens server-side to ensure correct results with paginated data.
 - **PostGIS location deduplication** — Submissions within 10 meters of an existing location reuse that location record using `ST_DWithin` geodesic calculations.
 - **Responsive mobile design** — Mobile-first layout with bottom navigation, safe-area-inset support for iPhone notch/home indicator, and dynamic viewport height (`100dvh`).
-- **Security** — Helmet security headers, httpOnly session cookies, rate limiting (100/15min general, 5/15min login, 200/15min spatial), 1MB request body limit, path traversal protection on photo serving.
+- **Security** — Helmet security headers, httpOnly session cookies, rate limiting (300/15min general, 5/15min login, 200/15min spatial), 1MB request body limit, path traversal protection on photo serving.
 
 ---
 
