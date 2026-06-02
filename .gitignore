@@ -21,6 +21,10 @@ Thumbs.db
 
 # Internal notes
 Noted.md
+DEPLOYMENT_TUTORIAL.md
+
+# Documentation (specs, tutorials — keep local only)
+docs/
 
 # Prisma
 prisma/*.db

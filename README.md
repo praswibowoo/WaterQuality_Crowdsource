@@ -2,7 +2,7 @@
 
 A **Progressive Web App (PWA)** for crowdsourcing water-quality data collection at Mangrove Wonorejo, Surabaya. Field researchers and citizen scientists can submit water sample measurements, view data on an interactive map, and track trends over time — all with offline support.
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Version](https://img.shields.io/badge/version-1.2.0-blue)
 
 ---
 

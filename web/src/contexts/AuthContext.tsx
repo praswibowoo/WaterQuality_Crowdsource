@@ -4,6 +4,7 @@ import axios from 'axios';
 interface User {
   id: string;
   username: string;
+  name?: string;
   role: string;
 }
 
@@ -21,6 +22,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  register: (name: string, username: string, password: string) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   getLoginHistory: () => Promise<LoginLogEntry[]>;
 }
@@ -88,8 +90,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return response.data.logs;
   }, []);
 
+  const register = useCallback(async (name: string, username: string, password: string) => {
+    const response = await axios.post(
+      `${API_BASE_URL}/auth/register`,
+      { name, username, password },
+      { withCredentials: true }
+    );
+    setUser(response.data.user);
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, isLoading, login, logout, changePassword, getLoginHistory }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, isLoading, login, logout, register, changePassword, getLoginHistory }}>
       {children}
     </AuthContext.Provider>
   );

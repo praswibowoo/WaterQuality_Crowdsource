@@ -19,6 +19,7 @@ model Location {
 
 enum UserRole {
   admin
+  user
 }
 
 enum Status {
@@ -28,13 +29,16 @@ enum Status {
 }
 
 model UserAccount {
-  id         String     @id @default(uuid())
-  username   String     @unique
+  id         String      @id @default(uuid())
+  name       String?     // Display name (nullable for backward compat with existing admin)
+  username   String      @unique
   password   String
-  role       UserRole   @default(admin)
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+  role       UserRole    @default(user)
+  active     Boolean     @default(true) // Soft delete flag
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
   loginLogs  LoginLog[]
+  samples    Sample[]
 }
 
 model LoginLog {
@@ -75,10 +79,13 @@ model Sample {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  location    Location  @relation(fields: [locationId], references: [id])
+  location    Location    @relation(fields: [locationId], references: [id])
   photos      Photo[]
+  user        UserAccount? @relation(fields: [userId], references: [id])
+  userId      String?
 
   @@index([qualityScore])
+  @@index([userId])
 }
 
 model Photo {

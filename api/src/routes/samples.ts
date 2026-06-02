@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import prisma from '../db/prisma';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
-import { authMiddleware } from '../middleware/auth';
+import { authMiddleware, type AuthenticatedRequest } from '../middleware/auth';
 import { recalculateScore } from '../services/qualityScoring';
 import {
   createSampleSchema,
@@ -157,6 +157,86 @@ router.get(
   })
 );
 
+// GET /api/v1/samples/my - Get current user's own samples (auth required)
+router.get(
+  '/my',
+  authMiddleware,
+  asyncHandler(async (req: Request, res: Response) => {
+    const queryResult = getSamplesQuerySchema.safeParse(req.query);
+    if (!queryResult.success) {
+      throw queryResult.error;
+    }
+
+    const { status, sortBy, sortOrder, limit: zodLimit, qualityScoreFilter } = queryResult.data;
+
+    // Pagination params
+    const cursor = req.query.cursor as string | undefined;
+    const limit = Math.min(
+      zodLimit || 20,
+      200 // max limit
+    );
+
+    // Build dynamic where clause — always filter by current user's ID
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic Prisma where clause
+    const where: any = {
+      userId: (req as AuthenticatedRequest).auth?.userId,
+    };
+
+    if (status) {
+      where.status = status;
+    }
+
+    if (qualityScoreFilter) {
+      switch (qualityScoreFilter) {
+        case 'high':
+          where.qualityScore = { gte: 0.8 };
+          break;
+        case 'moderate':
+          where.qualityScore = { gte: 0.5, lt: 0.8 };
+          break;
+        case 'low':
+          where.qualityScore = { lt: 0.5 };
+          break;
+        case 'none':
+          where.qualityScore = null;
+          break;
+      }
+    }
+
+    // Build dynamic orderBy with allowlist
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic Prisma orderBy
+    const orderBy: any = sortBy && ALLOWED_SORT_FIELDS.includes(sortBy)
+      ? { [sortBy]: sortOrder || 'desc' }
+      : { createdAt: 'desc' };
+
+    const samples = await prisma.sample.findMany({
+      where,
+      include: {
+        location: true,
+        photos: true,
+      },
+      orderBy,
+      take: limit + 1,
+      ...(cursor && {
+        cursor: { id: cursor },
+        skip: 1,
+      }),
+    });
+
+    const hasNextPage = samples.length > limit;
+    const data = hasNextPage ? samples.slice(0, limit) : samples;
+    const nextCursor = hasNextPage && data.length > 0 ? data[data.length - 1].id : null;
+
+    const totalCount = await prisma.sample.count({ where });
+
+    res.json({
+      data,
+      nextCursor,
+      totalCount,
+    });
+  })
+);
+
 // GET /api/v1/samples/markers - Lightweight endpoint for map markers (no pagination)
 router.get(
   '/markers',
@@ -216,10 +296,18 @@ router.get(
   })
 );
 
-// POST /api/v1/samples - Create new sample
+// POST /api/v1/samples - Create new sample (requires auth)
 router.post(
   '/',
+  authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    const currentUser = authReq.auth;
+
+    if (!currentUser) {
+      throw new AppError('Authentication required', 401);
+    }
+
     const bodyResult = createSampleSchema.safeParse(req.body);
     if (!bodyResult.success) {
       throw bodyResult.error;
@@ -234,10 +322,15 @@ router.post(
       locationData.address
     );
 
+    // Use the authenticated user's name as authorName, fallback to provided
+    const authorName = sampleData.authorName || currentUser.username;
+    const userId = currentUser.userId;
+
     // Then create the sample
     const sample = await prisma.sample.create({
       data: {
-        authorName: sampleData.authorName,
+        authorName,
+        userId,
         ph: sampleData.ph ?? null,
         temperature: sampleData.temperature ?? null,
         conductivity: conductivity ?? null,

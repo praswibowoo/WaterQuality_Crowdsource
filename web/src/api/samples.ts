@@ -65,6 +65,25 @@ export const samplesApi = {
     return response.data;
   },
 
+
+  async getMySamples(filters?: {
+    status?: string;
+    sortBy?: string;
+    sortOrder?: string;
+    cursor?: string;
+    limit?: number;
+    qualityScoreFilter?: string;
+  }): Promise<PaginatedResponse<Sample>> {
+    const params: Record<string, string | number> = {};
+    if (filters?.status) params.status = filters.status;
+    if (filters?.sortBy) params.sortBy = filters.sortBy;
+    if (filters?.sortOrder) params.sortOrder = filters.sortOrder;
+    if (filters?.cursor) params.cursor = filters.cursor;
+    if (filters?.limit) params.limit = filters.limit;
+    if (filters?.qualityScoreFilter) params.qualityScoreFilter = filters.qualityScoreFilter;
+    const response = await apiClient.get<PaginatedResponse<Sample>>('/samples/my', { params });
+    return response.data;
+  },
   async getByLocation(locationId: string): Promise<Sample[]> {
     const response = await apiClient.get<Sample[]>(`/locations/${locationId}/samples`);
     return response.data;

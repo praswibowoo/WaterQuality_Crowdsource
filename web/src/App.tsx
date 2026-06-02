@@ -7,6 +7,8 @@ import SampleList from './components/SampleList';
 import { SampleDetail } from './components/SampleDetail';
 import AdminDashboard from './components/AdminDashboard';
 import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import MySamplesPage from './pages/MySamplesPage';
 import NotFoundPage from './pages/NotFoundPage';
 import RequireAuth from './components/RequireAuth';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -49,6 +51,8 @@ function App() {
             <Route path="/sample/" element={<Navigate to="/list" replace />} />
             <Route path="/sample/:id" element={<SampleDetail />} />
             <Route path="/admin/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/my-samples" element={<MySamplesPage />} />
             <Route
               path="/admin"
               element={

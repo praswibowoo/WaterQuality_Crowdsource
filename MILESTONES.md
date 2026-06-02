@@ -469,7 +469,7 @@
 
 ---
 
-## Milestone 10: Data Quality Scoring & Spatial Interpolation (v1.1.0) 📝 Planned
+## Milestone 10: Data Quality Scoring & Spatial Interpolation (v1.1.0) 🔄 In Progress
 
 **Goal**: Make crowdsourced water quality data scientifically defensible through automated quality assurance, and enable spatial pattern visualization via geostatistical interpolation.
 
@@ -480,21 +480,21 @@
 - Implementation order: WQ-108 first (backend scoring), then WQ-109 (frontend heatmap) after WQ-108 is verified bug-free
 - WQ-110 deferred until sample count ≥ 200 with temporal spread across ≥ 3 seasons
 
-### Phase 1: Data Quality Scoring (Active)
+### Phase 1: Data Quality Scoring (Complete)
 
 | Feature ID | Feature | Priority | Status |
 |------------|---------|----------|--------|
-| WQ-108 | Data Quality Scoring Engine | 🔴 Blocker | 📝 Planned |
+| WQ-108 | Data Quality Scoring Engine | 🔴 Blocker | ✅ Done |
 
 **Exit Criteria**
 | Criteria | Status |
 |----------|--------|
-| `qualityScore` field exists in Prisma schema with index | 📝 Pending |
-| Creating a sample triggers score calculation within 200ms | 📝 Pending |
-| `GET /samples/:id/quality-score` returns 6-factor breakdown | 📝 Pending |
-| Frontend badge renders correctly (green/yellow/red/gray) | 📝 Pending |
-| Admin can filter samples by `qualityScore ≥ 0.8` | 📝 Pending |
-| `npm run lint && npm run typecheck` pass in all workspaces | 📝 Pending |
+| `qualityScore` field exists in Prisma schema with index | ✅ Done |
+| Creating a sample triggers score calculation within 200ms | ✅ Done |
+| `GET /samples/:id/quality-score` returns 6-factor breakdown | ✅ Done |
+| Frontend badge renders correctly (green/yellow/red/gray) | ✅ Done |
+| Admin can filter samples by `qualityScore ≥ 0.8` | ✅ Done |
+| `npm run lint && npm run typecheck` pass in all workspaces | ✅ Done |
 
 ### Phase 2: Spatial Interpolation Heatmap (Planned)
 
@@ -519,6 +519,127 @@
 | WQ-110 | ML Prediction Engine (Random Forest/XGBoost) | 🟢 Medium | 📝 Future Backlog |
 
 **Trigger Condition:** `Sample` count ≥ 200 and temporal spread covers ≥ 3 seasons.
+
+---
+
+## Hotfix v1.1.1: Pre-Deployment Security & Production Readiness ✅ Done
+
+**Goal**: Close security vulnerabilities and production blockers so the app can be safely deployed behind a reverse proxy. All blockers must pass before any public deployment.
+
+**User Approved Decisions:**
+- Seed script reads `ADMIN_PASSWORD` from env (no hardcoded passwords)
+- Admin can change password via AdminDashboard form
+- Single session only — new login or password change kills all other sessions
+- Login history visible in AdminDashboard (LoginLog table)
+- Session invalidation uses PostgreSQL session table JSON query
+
+### Phase A: Critical Security Blockers (Complete)
+
+| Feature ID | Feature | Priority | Status |
+|------------|---------|----------|--------|
+| WQ-111 | Add `trust proxy` config for reverse proxy (rate limiting fix) | 🔴 Blocker | ✅ Done |
+| WQ-112 | Fix API build to include `prisma generate` before `tsc` | 🔴 Blocker | ✅ Done |
+| WQ-113 | Add CSP allowed domains for external stylesheets (Leaflet, Google Fonts) | 🔴 Blocker | ✅ Done |
+| WQ-114 | Seed script reads `ADMIN_PASSWORD` from env + change password endpoint + single session enforcement + login history | 🔴 Blocker | ✅ Done |
+| WQ-115 | Remove session secret fallback (fail unconditionally if missing) | 🔴 Blocker | ✅ Done |
+
+### Phase B: Authentication & Security Hardening (Complete)
+
+| Feature ID | Feature | Priority | Status |
+|------------|---------|----------|--------|
+| WQ-116 | Use async `bcrypt.compare` instead of blocking `compareSync` | 🟡 High | ✅ Done |
+| WQ-117 | Fix auth middleware role default (fail closed, not default to admin) | 🟡 High | ✅ Done |
+| WQ-118 | Add max length to login password field (prevent bcrypt CPU exhaustion) | 🟡 High | ✅ Done |
+| WQ-119 | Sanitize health endpoint (remove PostGIS version leak) | 🟡 High | ✅ Done |
+| WQ-120 | Remove duplicate `/uploads` static serving route | 🟡 High | ✅ Done |
+| WQ-121 | Ensure `uploads/` directory exists at startup | 🟡 High | ✅ Done |
+
+**Exit Criteria** ✅ All complete
+
+---
+
+## Milestone 11: User Accounts & Data Isolation (v1.2.0) ✅ Done
+
+**Goal**: Implement user accounts with self-registration, data isolation (each user sees only their own samples), admin user management, and password reset capability.
+
+**User Approved Decisions:**
+- Self-registration with name, username, password (bcrypt)
+- Login required for sample submission (view remains public)
+- `authorName` auto-filled from user account (not manual)
+- Admin can manage users (list, create, deactivate, reset password)
+- User deletion = deactivate only (preserve data)
+- Admin dashboard has two tabs: Samples + Users
+- Existing anonymous samples remain viewable (backward compatible)
+
+### Phase 1: Database & Schema
+
+| Feature ID | Feature | Priority | Status |
+|------------|---------|----------|--------|
+| WQ-122 | Prisma schema: add `user` role, `name` field, `active` field, `userId` on Sample | 🔴 Blocker | ✅ Done |
+
+### Phase 2: Backend Auth
+
+| Feature ID | Feature | Priority | Status |
+|------------|---------|----------|--------|
+| WQ-123 | Register endpoint + schema + seed admin name | 🔴 Blocker | ✅ Done |
+| WQ-124 | Sample submit requires login | 🔴 Blocker | ✅ Done |
+| WQ-125 | Data isolation — GET /samples filters by userId for non-admins | 🔴 Blocker | ✅ Done |
+| WQ-136 | Registration rate limiting (5/15min per IP) | 🟡 High | ✅ Done |
+
+### Phase 3: Backend User Management
+
+| Feature ID | Feature | Priority | Status |
+|------------|---------|----------|--------|
+| WQ-126 | User management CRUD (admin) — list, create, deactivate | 🟡 High | ✅ Done |
+| WQ-135 | Admin password reset from user management | 🟡 High | ✅ Done |
+| WQ-138 | Kill user sessions on admin password reset | 🟡 High | ✅ Done |
+| WQ-140 | Generate temp password on admin user creation | 🟡 High | ✅ Done |
+
+### Phase 4: Frontend Auth
+
+| Feature ID | Feature | Priority | Status |
+|------------|---------|----------|--------|
+| WQ-128 | Frontend Register page + route | 🟡 High | ✅ Done |
+| WQ-129 | Sample form — require login, auto-fill authorName | 🟡 High | ✅ Done |
+| WQ-131 | AuthContext — add register method | 🟡 High | ✅ Done |
+
+### Phase 5: Admin UI
+
+| Feature ID | Feature | Priority | Status |
+|------------|---------|----------|--------|
+| WQ-127 | Admin dashboard — add Users tab (structure) | 🟡 High | ✅ Done |
+| WQ-130 | User management UI — list, create, deactivate, password reset | 🟡 High | ✅ Done |
+
+### Phase 6: Backward Compatibility & Polish
+
+| Feature ID | Feature | Priority | Status |
+|------------|---------|----------|--------|
+| WQ-132 | Backward compatibility — existing samples stay viewable | 🟢 Medium | ✅ Done |
+
+### Phase 7: Testing
+
+| Feature ID | Feature | Priority | Status |
+|------------|---------|----------|--------|
+| WQ-133 | Unit tests for user registration + data isolation | 🟡 High | ✅ Done |
+| WQ-134 | Full regression testing | 🟡 High | ✅ Done |
+
+**Exit Criteria**
+| Criteria | Status |
+|----------|--------|
+| `POST /auth/register` creates user with name, username, bcrypt password | ✅ Done |
+| Registration rate limited to 5 attempts per 15 minutes per IP | ✅ Done |
+| `POST /api/v1/samples` requires login; auto-sets userId and authorName | ✅ Done |
+| `GET /api/v1/samples` returns only current user's samples (non-admin) | ✅ Done |
+| `GET /api/v1/samples` returns all samples (admin) | ✅ Done |
+| `GET /api/v1/samples/:id` remains public | ✅ Done |
+| Admin can list users, create, deactivate, reset password | ✅ Done |
+| Admin-created users get generated temp password (shown once) | ✅ Done |
+| Admin password reset kills user's active sessions | ✅ Done |
+| Register page renders with validation | ✅ Done |
+| Sample form requires login, shows link if unauthenticated | ✅ Done |
+| Admin dashboard shows Users tab with management UI | ✅ Done |
+| Existing samples (userId=null) remain visible | ✅ Done |
+| `npm run lint && npm run typecheck` pass in all workspaces | ✅ Done |
 
 ---
 

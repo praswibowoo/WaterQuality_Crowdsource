@@ -141,6 +141,25 @@
 | WQ-119 | Sanitize health endpoint (remove PostGIS version leak) | ✅ Done | Hotfix v1.1.1 | Lead Manager | @lead-manager | — | — | health.ts returns PostGIS version string; return only up/down |
 | WQ-120 | Remove duplicate `/uploads` static serving route | ✅ Done | Hotfix v1.1.1 | Lead Manager | @lead-manager | — | — | index.ts serves /uploads statically + photos router serves same; remove one |
 | WQ-121 | Ensure `uploads/` directory exists at startup | ✅ Done | Hotfix v1.1.1 | Lead Manager | @lead-manager | — | — | multer fails if uploads/ dir missing; create on server start |
+| WQ-122 | Prisma schema: add `user` role, `name` field, `active` field, `userId` on Sample | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | Single UserAccount model with roles; soft delete via active flag; Sample.userId link |
+| WQ-123 | Register endpoint + schema + seed admin name | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | POST /auth/register with name/username/password validation; Zod schema; seed admin name |
+| WQ-124 | Sample submit requires login | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | POST /samples requires auth; auto-sets userId and authorName from authenticated user |
+| WQ-125 | Data isolation — public view, submission tracking | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | GET /samples public; POST /samples tags with userId; admin can track submissions |
+| WQ-126 | User management CRUD (admin) — list, create, deactivate | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | GET/POST/PUT /users endpoints; admin-only |
+| WQ-127 | Admin dashboard — add Users tab (structure) | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | New tab alongside Samples tab |
+| WQ-128 | Frontend Register page + route | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | Registration form with name/username/password; /register route |
+| WQ-129 | Sample form — require login, auto-fill authorName | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | Check isAuthenticated; redirect to login if not; auto-fill authorName from user name |
+| WQ-130 | User management UI — list, create, deactivate, password reset | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | AdminUsersTab component; table with list, create, deactivate, password reset |
+| WQ-131 | AuthContext — add register method | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | register() method + update useAuth return |
+| WQ-132 | Backward compatibility — existing samples stay viewable | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | userId=null samples remain visible; GET endpoints public; no data migration needed |
+| WQ-133 | Unit tests for user registration + data isolation | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | 17 new tests for createUserSchema, updateUserSchema, resetPasswordSchema |
+| WQ-134 | Full regression testing | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | 90/90 API tests + 77/77 web tests + lint + typecheck + build all clean |
+| WQ-135 | Admin password reset from user management | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | PUT /users/:id/reset-password; admin sets new password |
+| WQ-136 | Registration rate limiting (5/15min per IP) | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | Prevent spam registrations; same rate limit as login |
+| WQ-137 | User list pagination + sorting | 📝 Planned | v1.2.0 | Lead Manager | — | — | — | Paginate user list; sort by name/username/role/date |
+| WQ-138 | Kill user sessions on admin password reset | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | When admin resets password, kill all sessions for that user |
+| WQ-139 | Prevent admin self-deactivation | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | Admin UI hides deactivate button for own account |
+| WQ-140 | Generate temp password on admin user creation | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | Admin creates user → system generates random password → shown once |
 
 ---
 
@@ -224,6 +243,14 @@
 | 2026-06-02 | Lead Manager | Bug fixes + auth test coverage for WQ-111 to WQ-115 | WQ-111, WQ-112, WQ-113, WQ-114, WQ-115, WQ-116, WQ-118 | Fixed: clearCookie options, currentPassword max length, same-password check, test script path, build schema path. Created auth.test.ts (13 tests). Updated test count to 65/65. |
 | 2026-06-02 | Lead Manager | Updated detailed specs for Phase B (WQ-117, WQ-119, WQ-120, WQ-121) | WQ-117, WQ-119, WQ-120, WQ-121 | Updated pre-deployment-hotfix-spec.md with detailed implementation plans, code examples, validation steps for all 4 remaining Phase B features. Updated MILESTONES.md exit criteria with Phase A/B distinction. |
 | 2026-06-02 | Lead Manager | Implemented Phase B (WQ-117, WQ-119, WQ-120, WQ-121) | WQ-117, WQ-119, WQ-120, WQ-121 | WQ-117: auth middleware role fail-closed (no more default admin). WQ-119: health endpoint sanitized (up/down only, no version leak). WQ-120: duplicate /uploads static route removed. WQ-121: uploads dir auto-created on startup. All 65/65 API tests + 77/77 web tests pass. Hotfix v1.1.1 complete. |
+| 2026-06-02 | Lead Manager | Pre-publication audit + git init + remote + cleanup | C1-C2, H1-H6, M1-M8, L1-L6 | Full pre-publication audit: 2 critical, 6 high, 8 medium, 6 low findings. Fixed all items: git init, rotated secrets, created LICENSE, fixed README (version, duplicates, health example, rate limit), cleaned .gitignore, PWA manifest, seed data, .env.example. Version bumped to 1.0.0. |
+| 2026-06-02 | Lead Manager | Planned Milestone 11: User Accounts & Data Isolation | WQ-122 to WQ-140 | User decisions: self-registration, login required for submit only, replace authorName with user name, migrate admin to UserAccount with admin role, deactivate-only user deletion, two-tab admin dashboard (Samples + Users), admin password reset. Created detailed spec doc at docs/user-accounts-spec.md. |
+| 2026-06-02 | Lead Manager | Implemented WQ-122 (Phase 1: Database schema) | WQ-122 | Updated UserRole enum with 'user', added name/active fields to UserAccount, changed role default to 'user', added userId to Sample with relation + index. Ran prisma db push. Updated seed with admin name field. All 65/65 + 77/77 tests pass. |
+| 2026-06-02 | Lead Manager | Implemented Phase 2 (WQ-123, WQ-124, WQ-125, WQ-136) | WQ-123, WQ-124, WQ-125, WQ-136 | WQ-123: Register endpoint (POST /auth/register) + Zod schema + admin name in seed. WQ-124: POST /samples requires authMiddleware; auto-sets userId and authorName. WQ-125: GET /samples stays public; POST tags with userId. WQ-136: Registration rate limiter (5/15min per IP). Login checks active flag. 73/73 tests pass. |
+| 2026-06-02 | Lead Manager | Implemented Phase 3 (WQ-126, WQ-135, WQ-138, WQ-140) | WQ-126, WQ-135, WQ-138, WQ-140 | Created users.ts route with admin CRUD (list, create, deactivate). Added adminMiddleware for role checking. Implemented password reset with session kill (WQ-138). Admin can create users with temp password (WQ-140). Prevent admin self-deactivation. 73/73 tests pass. |
+| 2026-06-02 | Lead Manager | Implemented Phase 4 (WQ-128, WQ-129, WQ-131) | WQ-128, WQ-129, WQ-131 | Created RegisterPage with validation; added /register route; LoginPage now has register link; SampleForm checks isAuthenticated, shows login prompt if not logged in, auto-fills authorName from user.name; AuthContext.added register method + name field; 77/77 + 73/73 tests pass. |
+| 2026-06-02 | Lead Manager | Implemented Phase 5 (WQ-127, WQ-130) | WQ-127, WQ-130 | Created AdminUsersTab component with user list (name, username, role, status, actions), create user modal (with temp password), deactivate/reactivate, reset password. Added tab navigation to AdminDashboard. 77/77 + 73/73 tests pass. |
+| 2026-06-02 | Lead Manager | Implemented Phase 6 (WQ-132, WQ-133, WQ-134) | WQ-132, WQ-133, WQ-134 | Backward compatibility verified (all GET endpoints public). Added 17 unit tests for createUserSchema, updateUserSchema, resetPasswordSchema. Full regression: 90/90 API + 77/77 web tests, lint/typecheck/build clean both workspaces. |
 
 ---
 
@@ -286,7 +313,7 @@ Note: User model removed in favor of anonymous crowdsourcing (authorName field)
 - `npm run lint`: ✅ Pass
 - `npm run typecheck`: ✅ Pass
 - `npm run build`: ✅ Pass
-- `npm run test`: ✅ 65/65 tests pass
+- `npm run test`: ✅ 90/90 tests pass
 
 ### Database
 - Prisma generate: ✅ Successful

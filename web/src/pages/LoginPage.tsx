@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { AxiosError } from 'axios';
 
@@ -22,7 +22,12 @@ export default function LoginPage() {
     } catch (err) {
       const axiosError = err as AxiosError<{ message?: string }>;
       if (axiosError.response?.status === 401) {
-        setError('Invalid username or password');
+        const msg = axiosError.response?.data?.message || '';
+        if (msg.toLowerCase().includes('deactivated')) {
+          setError('Account deactivated. Contact admin.');
+        } else {
+          setError('Invalid username or password');
+        }
       } else if (axiosError.response?.status === 429) {
         setError('Too many login attempts. Please try again after 15 minutes.');
       } else {
@@ -75,6 +80,10 @@ export default function LoginPage() {
             {isLoading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
+
+        <p className="auth-switch">
+          Don&apos;t have an account? <Link to="/register">Register</Link>
+        </p>
 
       </div>
 
@@ -139,6 +148,17 @@ export default function LoginPage() {
           width: 100%;
           padding: var(--spacing-md);
           font-size: 1rem;
+        }
+
+        .auth-switch {
+          text-align: center;
+          margin-top: var(--spacing-md);
+          font-size: 0.875rem;
+          color: var(--color-text-muted);
+        }
+
+        .auth-switch a {
+          color: var(--color-primary);
         }
 
       `}</style>

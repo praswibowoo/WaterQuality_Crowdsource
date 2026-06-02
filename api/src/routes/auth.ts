@@ -3,9 +3,54 @@ import bcrypt from 'bcryptjs';
 import prisma from '../db/prisma';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
 import { authMiddleware, type AuthenticatedRequest } from '../middleware/auth';
-import { loginSchema, changePasswordSchema } from '../validators/schemas';
+import { loginSchema, changePasswordSchema, registerSchema } from '../validators/schemas';
 
 const router = Router();
+
+// POST /api/v1/auth/register
+router.post(
+  '/register',
+  asyncHandler(async (req: Request, res: Response) => {
+    const result = registerSchema.safeParse(req.body);
+    if (!result.success) {
+      throw result.error;
+    }
+
+    const { name, username, password } = result.data;
+
+    // Check if username already exists
+    const existing = await prisma.userAccount.findUnique({
+      where: { username },
+    });
+
+    if (existing) {
+      throw new AppError('Username already taken', 409);
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await prisma.userAccount.create({
+      data: {
+        name,
+        username,
+        password: hashedPassword,
+        role: 'user',
+      },
+    });
+
+    // Log the registration
+    await logLoginEvent(user.id, 'login', req);
+
+    res.status(201).json({
+      user: {
+        id: user.id,
+        username: user.username,
+        name: user.name,
+        role: user.role,
+      },
+    });
+  })
+);
 
 // Helper: log login event
 async function logLoginEvent(
@@ -55,6 +100,10 @@ router.post(
       throw new AppError('Invalid credentials', 401);
     }
 
+    if (!user.active) {
+      throw new AppError('Account deactivated. Contact admin.', 401);
+    }
+
     const isValidPassword = await bcrypt.compare(password, user.password);
 
     if (!isValidPassword) {
@@ -78,6 +127,7 @@ router.post(
       user: {
         id: user.id,
         username: user.username,
+        name: user.name,
         role: user.role,
       },
     });
@@ -94,17 +144,17 @@ router.get(
 
     const user = await prisma.userAccount.findUnique({
       where: { id: req.session.userId },
-      select: { id: true, username: true, role: true },
+      select: { id: true, username: true, name: true, role: true, active: true },
     });
 
-    if (!user) {
+    if (!user || !user.active) {
       req.session.destroy((err) => {
         if (err) console.error('Session destroy error:', err);
       });
       throw new AppError('Not authenticated', 401);
     }
 
-    res.json({ user });
+    res.json({ user: { id: user.id, username: user.username, name: user.name, role: user.role } });
   })
 );
 

@@ -1,5 +1,6 @@
 import { useState, FormEvent, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { useOfflineStore } from '../stores/offlineStore';
 import { samplesApi } from '../api/samples';
@@ -186,6 +187,14 @@ export default function SampleForm() {
       }));
     }
   }, [latitude, longitude]);
+
+  // Auth check — auto-fill authorName from logged in user
+  const { isAuthenticated, user } = useAuth();
+  useEffect(() => {
+    if (isAuthenticated && user?.name && !formData.authorName) {
+      setFormData((prev) => ({ ...prev, authorName: user.name || '' }));
+    }
+  }, [isAuthenticated, user, formData.authorName]);
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -435,6 +444,18 @@ export default function SampleForm() {
       <div className="card">
         <h2 className="card-title">Submit Water Sample</h2>
 
+        {!isAuthenticated ? (
+          <div className="auth-prompt">
+            <p>Login required to submit water samples.</p>
+            <p>
+              <Link to="/register" className="btn-primary">Create Account</Link>
+              {' or '}
+              <Link to="/admin/login" className="btn-primary">Sign In</Link>
+            </p>
+          </div>
+        ) : (
+        <>
+
         {offlinePhotoAlert && (
           <div className="offline-photo-alert" role="alert">
             <strong>Cannot submit with photos while offline</strong>
@@ -493,6 +514,7 @@ export default function SampleForm() {
               placeholder="Enter your name"
               className={errors.authorName ? 'error' : ''}
               disabled={isSubmitting}
+              readOnly={isAuthenticated}
             />
             {errors.authorName && <span className="error-message">{errors.authorName}</span>}
           </div>
@@ -837,6 +859,7 @@ export default function SampleForm() {
             </button>
           </div>
         </form>
+        </>)}
       </div>
 
       {/* GPS Accuracy Info Modal */}
@@ -864,6 +887,23 @@ export default function SampleForm() {
         .sample-form-container {
           max-width: 600px;
           margin: 0 auto;
+        }
+
+        .auth-prompt {
+          text-align: center;
+          padding: var(--spacing-2xl) var(--spacing-lg);
+        }
+
+        .auth-prompt p {
+          margin-bottom: var(--spacing-md);
+          font-size: 1rem;
+          color: var(--color-text-muted);
+        }
+
+        .auth-prompt .btn-primary {
+          display: inline-block;
+          margin: var(--spacing-xs);
+          text-decoration: none;
         }
 
         .card-title {

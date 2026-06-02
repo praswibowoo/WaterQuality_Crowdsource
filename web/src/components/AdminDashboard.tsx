@@ -6,6 +6,7 @@ import { MEASUREMENT_FIELDS, MEASUREMENT_PRIORITY } from '../utils/measurements'
 import { findWaterBodyType, findLandUse } from '../utils/metadata';
 import QualityScoreBadge from './QualityScoreBadge';
 import ConfirmDialog from './ConfirmDialog';
+import AdminUsersTab from './AdminUsersTab';
 
 type MeasurementPriorityKey = typeof MEASUREMENT_PRIORITY[number];
 
@@ -119,6 +120,8 @@ export default function AdminDashboard() {
   useEffect(() => {
     setConfirmAction(null);
   }, [statusFilter, qualityScoreFilter, authorSearch]);
+
+  const [activeTab, setActiveTab] = useState<'samples' | 'users'>('samples');
 
   // Fetch login history
   const fetchLoginHistory = useCallback(async () => {
@@ -265,6 +268,13 @@ export default function AdminDashboard() {
         <p className="page-subtitle">Review and moderate water quality submissions</p>
       </div>
 
+      {/* Tab Navigation */}
+      <div className="tab-nav">
+        <button className={`tab-nav-btn ${activeTab === 'samples' ? 'active' : ''}`} onClick={() => setActiveTab('samples')}>📋 Samples</button>
+        <button className={`tab-nav-btn ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')}>👥 Users</button>
+      </div>
+
+      {activeTab === 'samples' ? (<>
       {/* Stats Panel */}
       <div className="stats-panel">
         <div className="stat-badge stat-total">
@@ -468,6 +478,10 @@ export default function AdminDashboard() {
           onConfirm={handleConfirmDelete}
           onCancel={() => setConfirmAction(null)}
         />
+      )}
+
+      </>) : (
+        <AdminUsersTab />
       )}
 
       {/* 🔑 Change Password Section */}
@@ -1024,6 +1038,50 @@ export default function AdminDashboard() {
         @media (prefers-reduced-motion: reduce) {
           .section-chevron { transition: none; }
         }
+
+        /* Tab Navigation */
+        .tab-nav { display: flex; gap: var(--spacing-xs); margin-bottom: var(--spacing-lg); border-bottom: 2px solid var(--color-border); padding-bottom: 0; }
+        .tab-nav-btn { padding: var(--spacing-sm) var(--spacing-md); border: none; background: none; cursor: pointer; font-size: 0.875rem; color: var(--color-text-muted); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s; }
+        .tab-nav-btn.active { color: var(--color-primary); border-bottom-color: var(--color-primary); font-weight: 600; }
+        .tab-nav-btn:hover:not(.active) { color: var(--color-text); }
+
+        /* Users Tab */
+        .users-tab { margin-top: var(--spacing-md); }
+        .users-tab-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md); }
+        .users-tab-title { font-size: 0.875rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 0; }
+        .users-table-wrapper { overflow-x: auto; }
+        .users-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        .users-table th { text-align: left; padding: var(--spacing-sm); font-weight: 600; color: var(--color-text-muted); border-bottom: 2px solid var(--color-border); white-space: nowrap; }
+        .users-table td { padding: var(--spacing-sm); border-bottom: 1px solid var(--color-border); vertical-align: middle; }
+        .users-table tbody tr:hover { background: var(--color-background); }
+        .inactive-row { opacity: 0.6; }
+        .user-name { font-weight: 500; }
+        .user-username { font-family: monospace; color: var(--color-text-muted); }
+        .role-badge { display: inline-block; padding: 0.1rem 0.4rem; border-radius: var(--radius-full); font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
+        .role-admin { background: #e0e7ff; color: #4338ca; }
+        .role-user { background: #f0fdf4; color: #166534; }
+        .st-badge { display: inline-block; padding: 0.1rem 0.4rem; border-radius: var(--radius-full); font-size: 0.7rem; font-weight: 600; }
+        .st-badge.st-active { background: #dcfce7; color: #166534; }
+        .st-badge.st-inactive { background: #fee2e2; color: #991b1b; }
+        .user-actions { display: flex; gap: var(--spacing-xs); white-space: nowrap; }
+        .btn-tiny { padding: 0.2rem 0.5rem; border: none; border-radius: var(--radius-md); font-size: 0.7rem; cursor: pointer; white-space: nowrap; }
+        .btn-green { background: #dcfce7; color: #166534; }
+        .btn-amber { background: #fef3c7; color: #92400e; }
+        .btn-gray { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
+        .btn-tiny:hover { filter: brightness(0.95); }
+        /* Modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-card { background: var(--color-surface); border-radius: var(--radius-xl); padding: var(--spacing-lg); width: 90%; max-width: 450px; max-height: 80vh; overflow-y: auto; }
+        .modal-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md); }
+        .modal-hdr h3 { font-size: 1.125rem; margin: 0; }
+        .modal-x { font-size: 1.5rem; background: none; border: none; cursor: pointer; color: var(--color-text-muted); line-height: 1; }
+        .modal-card .input-group { margin-bottom: var(--spacing-sm); }
+        .modal-card label { display: block; font-size: 0.75rem; font-weight: 500; color: var(--color-text-muted); margin-bottom: var(--spacing-xs); }
+        .modal-card input, .modal-card select { width: 100%; padding: var(--spacing-sm); border: 1px solid var(--color-border); border-radius: var(--radius-md); font-size: 0.875rem; background: var(--color-surface); }
+        .temp-pw-box { text-align: center; padding: var(--spacing-md) 0; }
+        .temp-pw-label { font-size: 0.8rem; color: var(--color-text-muted); margin: var(--spacing-md) 0 var(--spacing-sm); }
+        .temp-pw-val { font-family: monospace; font-size: 1.5rem; font-weight: 700; letter-spacing: 0.1em; background: #f0fdf4; color: #166534; padding: var(--spacing-md); border-radius: var(--radius-md); border: 2px dashed #86efac; margin-bottom: var(--spacing-sm); }
+        .temp-pw-note { font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: var(--spacing-md); }
 
         @media (max-width: 480px) {
           .admin-sample-card {

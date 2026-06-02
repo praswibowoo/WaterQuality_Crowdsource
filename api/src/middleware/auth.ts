@@ -27,3 +27,13 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction):
 
   next();
 };
+
+export const adminMiddleware = (req: Request, res: Response, next: NextFunction): void => {
+  authMiddleware(req, res, () => {
+    const authReq = req as AuthenticatedRequest;
+    if (authReq.auth?.role !== 'admin') {
+      return void res.status(403).json({ error: 'Forbidden', message: 'Admin access required' });
+    }
+    next();
+  });
+};

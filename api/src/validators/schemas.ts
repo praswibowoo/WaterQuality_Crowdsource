@@ -5,7 +5,8 @@ export const createSampleSchema = z.object({
   authorName: z
     .string()
     .min(2, 'Name must be at least 2 characters')
-    .max(100, 'Name must not exceed 100 characters'),
+    .max(100, 'Name must not exceed 100 characters')
+    .optional(), // Now optional — will be auto-filled from authenticated user
   location: z.object({
     latitude: z.number().min(-90).max(90),
     longitude: z.number().min(-180).max(180),
@@ -81,6 +82,36 @@ export const getUserByIdSchema = z.object({
 export const loginSchema = z.object({
   username: z.string().min(1, 'Username is required'),
   password: z.string().min(1, 'Password is required').max(128, 'Password too long'),
+});
+
+export const registerSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters').max(100, 'Name too long'),
+  username: z
+    .string()
+    .min(3, 'Username must be at least 3 characters')
+    .max(30, 'Username too long')
+    .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
+  password: z.string().min(8, 'Password must be at least 8 characters').max(128, 'Password too long'),
+});
+
+export const createUserSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters').max(100, 'Name too long'),
+  username: z
+    .string()
+    .min(3, 'Username must be at least 3 characters')
+    .max(30, 'Username too long')
+    .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
+  password: z.string().min(8, 'Password must be at least 8 characters').max(128, 'Password too long').optional(),
+  role: z.enum(['user', 'admin']).optional().default('user'),
+});
+
+export const updateUserSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters').max(100, 'Name too long').optional(),
+  active: z.boolean().optional(),
+});
+
+export const resetPasswordSchema = z.object({
+  newPassword: z.string().min(8, 'Password must be at least 8 characters').max(128, 'Password too long'),
 });
 
 export const changePasswordSchema = z.object({

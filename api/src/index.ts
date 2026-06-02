@@ -16,6 +16,7 @@ import healthRouter from './routes/health';
 import docsRouter from './routes/docs';
 import spatialRouter from './routes/spatial';
 import qualityRouter from './routes/quality';
+import usersRouter from './routes/users';
 import { requestLogger } from './middleware/requestLogger';
 import { cspMiddleware } from './middleware/csp';
 import { migrateLocationsToPostGIS } from './scripts/migratePostGIS';
@@ -130,8 +131,21 @@ const loginLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Registration rate limiter: 5 registrations per 15 minutes per IP
+const registrationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: {
+    error: 'Too Many Requests',
+    message: 'Too many registration attempts. Please try again after 15 minutes.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Apply stricter rate limit to login route, then auth routes
 app.use('/api/v1/auth/login', loginLimiter);
+app.use('/api/v1/auth/register', registrationLimiter);
 app.use('/api/v1/auth', authRouter);
 
 // General rate limiter for all other API routes
@@ -149,6 +163,9 @@ app.use('/api/v1/samples', samplesRouter);
 app.use('/api/v1/locations', locationsRouter);
 // Photos router handles: /api/v1/samples/:id/photos, /api/v1/photos/:id, /api/v1/uploads/:filename
 app.use('/api/v1', photosRouter);
+
+// User management (admin only)
+app.use('/api/v1/users', usersRouter);
 
 // Error handling
 app.use(notFoundHandler);
