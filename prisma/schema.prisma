@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Location {
+  id        String   @id @default(uuid())
+  latitude  Float
+  longitude Float
+  geog      Unsupported("geography(Point, 4326)")?
+  address   String?
+  createdAt DateTime @default(now())
+  samples   Sample[]
+}
+
+enum UserRole {
+  admin
+}
+
+enum Status {
+  pending
+  approved
+  rejected
+}
+
+model UserAccount {
+  id         String     @id @default(uuid())
+  username   String     @unique
+  password   String
+  role       UserRole   @default(admin)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  loginLogs  LoginLog[]
+}
+
+model LoginLog {
+  id        String   @id @default(uuid())
+  userId    String
+  action    String   // 'login' | 'logout' | 'password_change'
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user UserAccount @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Sample {
+  id            String   @id @default(uuid())
+  authorName    String   // User's input name (anonymous)
+  locationId    String
+  ph            Float?
+  temperature   Float?   // Celsius
+  // Laquatwin params
+  conductivity  Float?   // µS/cm
+  salinity      Float?   // ‰ (practical salinity)
+  // LAQUAtwin ISE fields
+  nitrate       Float?   // mg/L, LAQUAtwin-NO3
+  calcium       Float?   // mg/L, LAQUAtwin-Ca2
+  potassium     Float?   // mg/L, LAQUAtwin-K
+  sodium        Float?   // mg/L, LAQUAtwin-Na
+  // Metadata tags
+  waterBodyType String?  // Optional for existing data; frontend enforces required
+  landUse       String?  // Optional for existing data; frontend enforces required
+  gpsAccuracy   Float?   // GPS accuracy in meters
+  notes         String?
+  status        Status   @default(pending)
+  qualityScore  Float?   // 0.0 to 1.0, computed by scoring engine
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  location    Location  @relation(fields: [locationId], references: [id])
+  photos      Photo[]
+
+  @@index([qualityScore])
+}
+
+model Photo {
+  id        String   @id @default(uuid())
+  filename  String
+  path      String
+  mimeType  String
+  size      Int
+  caption   String?
+  sampleId  String
+  sample    Sample   @relation(fields: [sampleId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}

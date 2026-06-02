@@ -1,0 +1,227 @@
+import { Router, Request, Response } from 'express';
+import bcrypt from 'bcryptjs';
+import prisma from '../db/prisma';
+import { asyncHandler, AppError } from '../middleware/errorHandler';
+import { authMiddleware, type AuthenticatedRequest } from '../middleware/auth';
+import { loginSchema, changePasswordSchema } from '../validators/schemas';
+
+const router = Router();
+
+// Helper: log login event
+async function logLoginEvent(
+  userId: string,
+  action: 'login' | 'logout' | 'password_change',
+  req: Request
+) {
+  const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
+    || req.socket.remoteAddress
+    || null;
+  const userAgent = req.headers['user-agent'] || null;
+
+  await prisma.loginLog.create({
+    data: { userId, action, ipAddress, userAgent },
+  });
+}
+
+// Helper: kill all other sessions for this user (single session enforcement)
+async function killOtherSessions(currentSessionId: string, userId: string) {
+  try {
+    await prisma.$executeRaw`
+      DELETE FROM session
+      WHERE sess->>'userId' = ${userId}
+      AND sid != ${currentSessionId}
+    `;
+  } catch (err) {
+    console.warn('Failed to kill other sessions:', err);
+  }
+}
+
+// POST /api/v1/auth/login
+router.post(
+  '/login',
+  asyncHandler(async (req: Request, res: Response) => {
+    const result = loginSchema.safeParse(req.body);
+    if (!result.success) {
+      throw result.error;
+    }
+
+    const { username, password } = result.data;
+
+    const user = await prisma.userAccount.findUnique({
+      where: { username },
+    });
+
+    if (!user) {
+      throw new AppError('Invalid credentials', 401);
+    }
+
+    const isValidPassword = await bcrypt.compare(password, user.password);
+
+    if (!isValidPassword) {
+      throw new AppError('Invalid credentials', 401);
+    }
+
+    // Kill any other existing sessions (single session enforcement)
+    if (req.sessionID) {
+      await killOtherSessions(req.sessionID, user.id);
+    }
+
+    // Set session
+    req.session.userId = user.id;
+    req.session.username = user.username;
+    req.session.role = user.role;
+
+    // Log the login event
+    await logLoginEvent(user.id, 'login', req);
+
+    res.json({
+      user: {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+      },
+    });
+  })
+);
+
+// GET /api/v1/auth/me
+router.get(
+  '/me',
+  asyncHandler(async (req: Request, res: Response) => {
+    if (!req.session.userId) {
+      throw new AppError('Not authenticated', 401);
+    }
+
+    const user = await prisma.userAccount.findUnique({
+      where: { id: req.session.userId },
+      select: { id: true, username: true, role: true },
+    });
+
+    if (!user) {
+      req.session.destroy((err) => {
+        if (err) console.error('Session destroy error:', err);
+      });
+      throw new AppError('Not authenticated', 401);
+    }
+
+    res.json({ user });
+  })
+);
+
+// POST /api/v1/auth/logout
+router.post(
+  '/logout',
+  authMiddleware,
+  asyncHandler(async (req: Request, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    const userId = authReq.auth?.userId;
+
+    // Log the logout event
+    if (userId) {
+      await logLoginEvent(userId, 'logout', req);
+    }
+
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('Logout error:', err);
+        throw new AppError('Failed to logout', 500);
+      }
+      res.clearCookie('wq.sid', {
+        httpOnly: true,
+        sameSite: 'strict',
+        secure: process.env.NODE_ENV === 'production',
+        path: '/',
+      });
+      res.json({ message: 'Logged out successfully' });
+    });
+  })
+);
+
+// POST /api/v1/auth/change-password
+router.post(
+  '/change-password',
+  authMiddleware,
+  asyncHandler(async (req: Request, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    const result = changePasswordSchema.safeParse(req.body);
+    if (!result.success) {
+      throw result.error;
+    }
+
+    const { currentPassword, newPassword } = result.data;
+    const userId = authReq.auth?.userId;
+
+    if (!userId) {
+      throw new AppError('Not authenticated', 401);
+    }
+
+    // Prevent setting the same password
+    if (currentPassword === newPassword) {
+      throw new AppError('New password must be different from current password', 400);
+    }
+
+    // Fetch user
+    const user = await prisma.userAccount.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+
+    // Verify current password
+    const isValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isValid) {
+      throw new AppError('Current password is incorrect', 401);
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password
+    await prisma.userAccount.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+    });
+
+    // Kill all other sessions (single session enforcement)
+    if (req.sessionID) {
+      await killOtherSessions(req.sessionID, userId);
+    }
+
+    // Log the password change event
+    await logLoginEvent(userId, 'password_change', req);
+
+    res.json({ message: 'Password changed successfully' });
+  })
+);
+
+// GET /api/v1/auth/login-history — recent login events
+router.get(
+  '/login-history',
+  authMiddleware,
+  asyncHandler(async (req: Request, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    const userId = authReq.auth?.userId;
+    if (!userId) {
+      throw new AppError('Not authenticated', 401);
+    }
+
+    const logs = await prisma.loginLog.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+      select: {
+        id: true,
+        action: true,
+        ipAddress: true,
+        userAgent: true,
+        createdAt: true,
+      },
+    });
+
+    res.json({ logs });
+  })
+);
+
+export default router;

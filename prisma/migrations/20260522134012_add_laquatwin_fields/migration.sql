@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "Sample" ADD COLUMN     "conductivity" DOUBLE PRECISION,
+ADD COLUMN     "orp" DOUBLE PRECISION,
+ADD COLUMN     "salinity" DOUBLE PRECISION,
+ADD COLUMN     "tds" DOUBLE PRECISION;
