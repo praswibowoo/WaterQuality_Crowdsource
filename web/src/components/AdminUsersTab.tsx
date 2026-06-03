@@ -1,5 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { usersApi, type AdminUser } from '../api/users';
+import ConfirmDialog from './ConfirmDialog';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 export default function AdminUsersTab() {
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -22,6 +24,14 @@ export default function AdminUsersTab() {
   const [rConfirm, setRConfirm] = useState('');
   const [rError, setRError] = useState<string | null>(null);
   const [rLoading, setRLoading] = useState(false);
+  const [rSuccess, setRSuccess] = useState(false);
+
+  // M4: Inline feedback
+  const [toggleSuccess, setToggleSuccess] = useState<string | null>(null);
+  const [toggleError, setToggleError] = useState<string | null>(null);
+
+  // M5: Deactivation confirmation
+  const [deactivateTarget, setDeactivateTarget] = useState<AdminUser | null>(null);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true); setError(null);
@@ -47,21 +57,36 @@ export default function AdminUsersTab() {
     } finally { setCLoading(false); }
   };
 
-  const handleToggleActive = async (u: AdminUser) => {
-    try { await usersApi.update(u.id, { active: !u.active }); fetchUsers(); }
-    catch { alert('Failed to update user'); }
+  // M5: Show confirmation before toggling
+  const handleToggleActive = (u: AdminUser) => {
+    setDeactivateTarget(u);
+  };
+
+  const handleConfirmToggle = async () => {
+    if (!deactivateTarget) return;
+    setToggleError(null); setToggleSuccess(null);
+    try {
+      await usersApi.update(deactivateTarget.id, { active: !deactivateTarget.active });
+      setToggleSuccess(`User ${deactivateTarget.active ? 'deactivated' : 'reactivated'} successfully`);
+      setDeactivateTarget(null);
+      fetchUsers();
+    } catch {
+      setToggleError('Failed to update user');
+      setDeactivateTarget(null);
+    }
   };
 
   const handleReset = async (e: React.FormEvent) => {
-    e.preventDefault(); setRError(null);
+    e.preventDefault(); setRError(null); setRSuccess(false);
     if (rNew !== rConfirm) { setRError('Passwords do not match'); return; }
     if (rNew.length < 8) { setRError('Password must be at least 8 characters'); return; }
     if (!resetUser) return;
     setRLoading(true);
     try {
       await usersApi.resetPassword(resetUser.id, rNew);
-      setRNew(''); setRConfirm(''); setResetUser(null);
-      alert('Password reset successfully');
+      setRNew(''); setRConfirm('');
+      setRSuccess(true);
+      setTimeout(() => { setResetUser(null); setRSuccess(false); }, 2000);
     } catch { setRError('Failed to reset password'); }
     finally { setRLoading(false); }
   };
@@ -77,6 +102,8 @@ export default function AdminUsersTab() {
 
       {loading && <p className="loading-text">Loading users...</p>}
       {error && <div className="form-error">{error}</div>}
+      {toggleSuccess && <div className="form-success">{toggleSuccess}</div>}
+      {toggleError && <div className="form-error">{toggleError}</div>}
       {!loading && !error && users.length === 0 && <p className="empty-text">No users found.</p>}
 
       {!loading && !error && users.length > 0 && (
@@ -110,17 +137,47 @@ export default function AdminUsersTab() {
         </div>
       )}
 
-      {showCreate && (
-        <div className="modal-overlay" onClick={closeCreate}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-hdr"><h3>Create User</h3><button className="modal-x" onClick={closeCreate}>×</button></div>
+      {/* M5: Deactivation confirmation dialog */}
+      {deactivateTarget && (
+        <ConfirmDialog
+          title={deactivateTarget.active ? 'Deactivate User' : 'Reactivate User'}
+          message={`Are you sure you want to ${deactivateTarget.active ? 'deactivate' : 'reactivate'} "${deactivateTarget.username}"? ${deactivateTarget.active ? 'They will be unable to log in and all their sessions will be terminated.' : 'They will regain access to their account.'}`}
+          confirmLabel={deactivateTarget.active ? 'Deactivate' : 'Reactivate'}
+          variant={deactivateTarget.active ? 'warning' : 'info'}
+          onConfirm={handleConfirmToggle}
+          onCancel={() => setDeactivateTarget(null)}
+        />
+      )}
+
+      {showCreate && <CreateUserModal onClose={closeCreate} cName={cName} setCName={setCName} cUsername={cUsername} setCUsername={setCUsername} cPassword={cPassword} setCPassword={setCPassword} cRole={cRole} setCRole={setCRole} cError={cError} cLoading={cLoading} tempPw={tempPw} handleCreate={handleCreate} />}
+      {resetUser && <ResetPasswordModal resetUser={resetUser} onClose={() => { setResetUser(null); setRError(null); setRSuccess(false); }} onReset={handleReset} rNew={rNew} setRNew={setRNew} rConfirm={rConfirm} setRConfirm={setRConfirm} rError={rError} rLoading={rLoading} rSuccess={rSuccess} />}
+    </div>
+  );
+}
+
+function CreateUserModal({ onClose, cName, setCName, cUsername, setCUsername, cPassword, setCPassword, cRole, setCRole, cError, cLoading, tempPw, handleCreate }: {
+  onClose: () => void;
+  cName: string; setCName: (v: string) => void;
+  cUsername: string; setCUsername: (v: string) => void;
+  cPassword: string; setCPassword: (v: string) => void;
+  cRole: string; setCRole: (v: string) => void;
+  cError: string | null;
+  cLoading: boolean;
+  tempPw: string | null;
+  handleCreate: (e: React.FormEvent) => void;
+}) {
+  const containerRef = useFocusTrap(true, onClose);
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div ref={containerRef} className="modal-card" role="dialog" aria-modal="true" aria-label="Create user" onClick={(e) => e.stopPropagation()} tabIndex={-1}>
+        <div className="modal-hdr"><h3>Create User</h3><button className="modal-x" onClick={onClose}>×</button></div>
             {tempPw ? (
               <div className="temp-pw-box">
                 <p>User created successfully!</p>
                 <p className="temp-pw-label">Temporary password (share with user):</p>
                 <div className="temp-pw-val">{tempPw}</div>
                 <p className="temp-pw-note">This password will not be shown again.</p>
-                <button className="btn-primary" onClick={closeCreate}>Done</button>
+                <button className="btn-primary" onClick={onClose}>Done</button>
               </div>
             ) : (
               <form onSubmit={handleCreate}>
@@ -136,19 +193,35 @@ export default function AdminUsersTab() {
         </div>
       )}
 
-      {resetUser && (
-        <div className="modal-overlay" onClick={() => { setResetUser(null); setRError(null); }}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-hdr"><h3>Reset Password — {resetUser.username}</h3><button className="modal-x" onClick={() => { setResetUser(null); setRError(null); }}>×</button></div>
-            <form onSubmit={handleReset}>
-              <div className="input-group"><label>New Password</label><input type="password" value={rNew} onChange={(e) => setRNew(e.target.value)} placeholder="Min. 8 chars" required minLength={8} maxLength={128} /></div>
-              <div className="input-group"><label>Confirm</label><input type="password" value={rConfirm} onChange={(e) => setRConfirm(e.target.value)} placeholder="Re-enter" required minLength={8} maxLength={128} /></div>
-              {rError && <div className="form-error">{rError}</div>}
-              <button type="submit" className="btn-primary" disabled={rLoading}>{rLoading ? 'Resetting...' : 'Reset Password'}</button>
-            </form>
+function ResetPasswordModal({ resetUser, onClose, onReset, rNew, setRNew, rConfirm, setRConfirm, rError, rLoading, rSuccess }: {
+  resetUser: AdminUser;
+  onClose: () => void;
+  onReset: (e: React.FormEvent) => void;
+  rNew: string; setRNew: (v: string) => void;
+  rConfirm: string; setRConfirm: (v: string) => void;
+  rError: string | null;
+  rLoading: boolean;
+  rSuccess: boolean;
+}) {
+  const containerRef = useFocusTrap(true, onClose);
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div ref={containerRef} className="modal-card" role="dialog" aria-modal="true" aria-label={`Reset password for ${resetUser.username}`} onClick={(e) => e.stopPropagation()} tabIndex={-1}>
+        <div className="modal-hdr"><h3>Reset Password — {resetUser.username}</h3><button className="modal-x" onClick={onClose}>×</button></div>
+            {rSuccess ? (
+              <div className="temp-pw-box">
+                <p className="form-success" style={{ padding: '1rem', margin: 0 }}>✓ Password reset successfully</p>
+                <button className="btn-primary" onClick={onClose} style={{ marginTop: '1rem' }}>Done</button>
+              </div>
+            ) : (
+              <form onSubmit={onReset}>
+                <div className="input-group"><label>New Password</label><input type="password" value={rNew} onChange={(e) => setRNew(e.target.value)} placeholder="Min. 8 chars" required minLength={8} maxLength={128} /></div>
+                <div className="input-group"><label>Confirm</label><input type="password" value={rConfirm} onChange={(e) => setRConfirm(e.target.value)} placeholder="Re-enter" required minLength={8} maxLength={128} /></div>
+                {rError && <div className="form-error">{rError}</div>}
+                <button type="submit" className="btn-primary" disabled={rLoading}>{rLoading ? 'Resetting...' : 'Reset Password'}</button>
+              </form>
+            )}
           </div>
         </div>
-      )}
-    </div>
-  );
+      );
 }

@@ -9,6 +9,7 @@ export interface SampleFilters {
   dateTo?: string;
   sortBy?: string;
   sortOrder?: string;
+  qualityScoreFilter?: string;
 }
 
 export function useSamples(filters?: SampleFilters) {

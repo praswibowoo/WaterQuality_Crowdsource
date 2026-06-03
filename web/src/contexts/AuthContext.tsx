@@ -20,7 +20,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
   isLoading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<User>;
   logout: () => Promise<void>;
   register: (name: string, username: string, password: string) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
@@ -59,7 +59,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       { username, password },
       { withCredentials: true }
     );
-    setUser(response.data.user);
+    const userData = response.data.user as User;
+    setUser(userData);
+    return userData;
   }, []);
 
   const logout = useCallback(async () => {

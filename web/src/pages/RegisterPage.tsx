@@ -31,7 +31,7 @@ export default function RegisterPage() {
 
     try {
       await register(name, username, password);
-      navigate('/');
+      navigate('/', { state: { registrationSuccess: true } });
     } catch (err) {
       const axiosError = err as AxiosError<{ message?: string }>;
       if (axiosError.response?.status === 409) {
@@ -124,7 +124,7 @@ export default function RegisterPage() {
         </form>
 
         <p className="auth-switch">
-          Already have an account? <Link to="/admin/login">Sign in</Link>
+          Already have an account? <Link to="/login">Sign in</Link>
         </p>
       </div>
 

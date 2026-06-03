@@ -262,7 +262,7 @@ export default function SampleList() {
           {hasActiveFilters ? (
             <p>No samples match your filters. Try clearing filters or adjusting dates.</p>
           ) : (
-            <p>No submissions yet. <Link to="/">Submit a sample →</Link></p>
+            <p>No submissions yet. <Link to="/submit">Submit a sample →</Link></p>
           )}
           {hasActiveFilters && <button onClick={clearFilters} className="btn-clear">Clear filters</button>}
         </div>

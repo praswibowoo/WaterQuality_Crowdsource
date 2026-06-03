@@ -38,8 +38,12 @@ router.post(
       },
     });
 
-    // Log the registration
-    await logLoginEvent(user.id, 'login', req);
+    // Auto-login after registration (C5)
+    req.session.userId = user.id;
+    req.session.username = user.username;
+    req.session.role = user.role;
+
+    await logLoginEvent(user.id, 'registration', req);
 
     res.status(201).json({
       user: {
@@ -55,7 +59,7 @@ router.post(
 // Helper: log login event
 async function logLoginEvent(
   userId: string,
-  action: 'login' | 'logout' | 'password_change',
+  action: 'login' | 'logout' | 'password_change' | 'registration',
   req: Request
 ) {
   const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
@@ -115,21 +119,30 @@ router.post(
       await killOtherSessions(req.sessionID, user.id);
     }
 
-    // Set session
-    req.session.userId = user.id;
-    req.session.username = user.username;
-    req.session.role = user.role;
+    // Regenerate session ID to prevent session fixation (H5)
+    req.session.regenerate(async (err) => {
+      if (err) {
+        console.error('Session regenerate error:', err);
+        res.status(500).json({ error: 'Internal server error', message: 'Failed to create session' });
+        return;
+      }
 
-    // Log the login event
-    await logLoginEvent(user.id, 'login', req);
+      // Set session data after regeneration
+      req.session.userId = user.id;
+      req.session.username = user.username;
+      req.session.role = user.role;
 
-    res.json({
-      user: {
-        id: user.id,
-        username: user.username,
-        name: user.name,
-        role: user.role,
-      },
+      // Log the login event
+      await logLoginEvent(user.id, 'login', req);
+
+      res.json({
+        user: {
+          id: user.id,
+          username: user.username,
+          name: user.name,
+          role: user.role,
+        },
+      });
     });
   })
 );
@@ -174,7 +187,8 @@ router.post(
     req.session.destroy((err) => {
       if (err) {
         console.error('Logout error:', err);
-        throw new AppError('Failed to logout', 500);
+        res.status(500).json({ error: 'Failed to logout', message: 'Could not destroy session' });
+        return;
       }
       res.clearCookie('wq.sid', {
         httpOnly: true,

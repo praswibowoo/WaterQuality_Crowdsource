@@ -88,7 +88,7 @@
 | `/api` or `/backend` | Developer | Express/Fastify API |
 | `/services/ai` | Developer | AI analysis microservice |
 | `/prisma` | Lead Manager / Developer | Database schema & migrations |
-| `/docs` | Lead Manager | Specs, API docs, decisions |
+| `/docs` | Lead Manager | **Temporary** spec files — delete after implementation. Only contains specs for 📝 Planned / 📝 Future Backlog features. Once a feature is ✅ Done, its spec file in here is erased. |
 
 ## Common Commands (update as project grows)
 ```bash

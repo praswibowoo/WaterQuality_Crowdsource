@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { useNearbySamples } from '../hooks/useNearbySamples';
 import type { NearbySample } from '../hooks/useNearbySamples';
 
@@ -256,38 +257,18 @@ export default function NearbySamplesPanel({ userLocation, onClose }: NearbySamp
           overflow-y: auto;
           flex: 1;
         }
-      `}</style>
-    </div>
-  );
-}
-
-function SampleCard({ sample }: { sample: NearbySample }) {
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'approved': return '✅';
-      case 'rejected': return '❌';
-      default: return '⏳';
-    }
-  };
-
-  return (
-    <div className="nearby-card">
-      <div className="nearby-card-top">
-        <span className="nearby-card-author">{sample.authorName}</span>
-        <span className="nearby-card-distance">{sample.distance_meters.toFixed(0)}m</span>
-      </div>
-      <div className="nearby-card-meta">
-        <span>{getStatusIcon(sample.status)}</span>
-        {sample.ph !== null && <span className="measurement">pH: {sample.ph}</span>}
-        {sample.temperature !== null && <span className="measurement">{sample.temperature}°C</span>}
-        {sample.conductivity !== null && <span className="measurement">{sample.conductivity} µS</span>}
-      </div>
-      <style>{`
         .nearby-card {
+          display: block;
           padding: var(--spacing-sm);
           border: 1px solid var(--color-border);
           border-radius: var(--radius-md);
           background: var(--color-surface);
+          text-decoration: none;
+          color: inherit;
+          transition: border-color var(--transition-fast);
+        }
+        .nearby-card:hover {
+          border-color: var(--color-primary);
         }
         .nearby-card-top {
           display: flex;
@@ -311,11 +292,36 @@ function SampleCard({ sample }: { sample: NearbySample }) {
           color: var(--color-text-muted);
         }
         .measurement {
-          background: #f3f4f6;
+          background: var(--color-background);
           padding: 0.1rem 0.3rem;
           border-radius: 3px;
         }
       `}</style>
     </div>
+  );
+}
+
+function SampleCard({ sample }: { sample: NearbySample }) {
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'approved': return '✅';
+      case 'rejected': return '❌';
+      default: return '⏳';
+    }
+  };
+
+  return (
+    <Link to={`/sample/${sample.id}`} className="nearby-card">
+      <div className="nearby-card-top">
+        <span className="nearby-card-author">{sample.authorName}</span>
+        <span className="nearby-card-distance">{sample.distance_meters.toFixed(0)}m</span>
+      </div>
+      <div className="nearby-card-meta">
+        <span>{getStatusIcon(sample.status)}</span>
+        {sample.ph !== null && <span className="measurement">pH: {sample.ph}</span>}
+        {sample.temperature !== null && <span className="measurement">{sample.temperature}°C</span>}
+        {sample.conductivity !== null && <span className="measurement">{sample.conductivity} µS</span>}
+      </div>
+    </Link>
   );
 }

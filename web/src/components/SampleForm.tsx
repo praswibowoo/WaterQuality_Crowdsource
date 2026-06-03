@@ -1,5 +1,6 @@
 import { useState, FormEvent, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 import { useAuth } from '../contexts/AuthContext';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { useOfflineStore } from '../stores/offlineStore';
@@ -103,6 +104,37 @@ const getAccuracyLabel = (accuracy: number | null): string => {
   return 'Low';
 };
 
+function AccuracyModal({ accuracy, onClose }: { accuracy: number | null; onClose: () => void }) {
+  const containerRef = useFocusTrap(true, onClose);
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div
+        ref={containerRef}
+        className="accuracy-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="GPS accuracy information"
+        onClick={(e) => e.stopPropagation()}
+        tabIndex={-1}
+      >
+        <h3>📍 GPS Accuracy</h3>
+        <p className="accuracy-value">
+          {getAccuracyLabel(accuracy)} ({accuracy !== null ? `${Math.round(accuracy)}m` : 'N/A'})
+        </p>
+        <p>GPS accuracy indicates how precise your location is. A smaller number means higher accuracy.</p>
+        <ul>
+          <li>🟢 ≤10m: Excellent — suitable for precise mapping</li>
+          <li>🟡 10-30m: Moderate — generally acceptable</li>
+          <li>🔴 &gt;30m: Poor — consider moving to a more open area</li>
+        </ul>
+        <button className="btn-primary" onClick={onClose}>
+          Got it
+        </button>
+      </div>
+    </div>
+  );
+}
+
 interface FormData {
   authorName: string;
   ph: string;
@@ -177,7 +209,8 @@ export default function SampleForm() {
     return () => stopTracking();
   }, [startTracking, stopTracking]);
 
-  // Sync formData when geolocation updates
+  // Sync formData when geolocation updates + reverse geocode address
+  const geocodedRef = useRef<string>('');
   useEffect(() => {
     if (latitude && longitude) {
       setFormData((prev) => ({
@@ -185,6 +218,23 @@ export default function SampleForm() {
         latitude: prev.latitude || latitude.toString(),
         longitude: prev.longitude || longitude.toString(),
       }));
+      // Auto-fill address from GPS position (only once per coordinates)
+      const coordsKey = `${latitude},${longitude}`;
+      if (geocodedRef.current !== coordsKey) {
+        geocodedRef.current = coordsKey;
+        const controller = new AbortController();
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`, {
+          signal: controller.signal,
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.display_name) {
+              setFormData((prev) => ({ ...prev, address: prev.address || data.display_name }));
+            }
+          })
+          .catch(() => {});
+        return () => controller.abort();
+      }
     }
   }, [latitude, longitude]);
 
@@ -195,6 +245,22 @@ export default function SampleForm() {
       setFormData((prev) => ({ ...prev, authorName: user.name || '' }));
     }
   }, [isAuthenticated, user, formData.authorName]);
+
+  // Warn before leaving with unsaved changes
+  useEffect(() => {
+    const isDirty = formData.ph || formData.temperature || formData.conductivity ||
+      formData.salinity || formData.nitrate || formData.calcium || formData.potassium ||
+      formData.sodium || formData.notes || formData.waterBodyType || formData.landUse ||
+      photos.length > 0;
+
+    if (!isDirty) return;
+
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [formData, photos]);
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -432,12 +498,16 @@ export default function SampleForm() {
       const newPhotos = [...prev];
       URL.revokeObjectURL(newPhotos[index].preview);
       newPhotos.splice(index, 1);
-      if (newPhotos.length === 0) {
-        setExifWarning(false);
-      }
       return newPhotos;
     });
   };
+
+  // Clear EXIF warning when all photos removed
+  useEffect(() => {
+    if (photos.length === 0) {
+      setExifWarning(false);
+    }
+  }, [photos.length]);
 
   return (
     <div className="sample-form-container">
@@ -446,12 +516,15 @@ export default function SampleForm() {
 
         {!isAuthenticated ? (
           <div className="auth-prompt">
-            <p>Login required to submit water samples.</p>
-            <p>
-              <Link to="/register" className="btn-primary">Create Account</Link>
-              {' or '}
-              <Link to="/admin/login" className="btn-primary">Sign In</Link>
+            <div className="auth-prompt-icon">🧪</div>
+            <h3 className="auth-prompt-title">Ready to Contribute?</h3>
+            <p className="auth-prompt-text">
+              Sign in to submit water quality samples and help monitor the mangrove ecosystem.
             </p>
+            <div className="auth-prompt-actions">
+              <Link to="/login" className="btn-primary auth-prompt-btn">Sign In</Link>
+              <Link to="/register" className="btn-secondary auth-prompt-btn">Create Account</Link>
+            </div>
           </div>
         ) : (
         <>
@@ -491,8 +564,9 @@ export default function SampleForm() {
 
         {submitSuccess && (
           <div className="success-banner">
-            ✓ Sample submitted successfully!
-            {submitServerId && <Link to={`/sample/${submitServerId}`} className="success-link"> View details →</Link>}
+            <span>✓ Sample submitted successfully!
+            {submitServerId && <Link to={`/sample/${submitServerId}`} className="success-link"> View details →</Link>}</span>
+            <button type="button" className="success-dismiss" onClick={() => setSubmitSuccess(false)} aria-label="Dismiss">✕</button>
           </div>
         )}
 
@@ -505,15 +579,17 @@ export default function SampleForm() {
         <form onSubmit={handleSubmit}>
           {/* Author Name */}
           <div className="input-group">
-            <label htmlFor="authorName">Your Name *</label>
+            <label htmlFor="authorName">
+              Your Name *
+              {isAuthenticated && <span className="author-name-hint"> 🔒 From your account</span>}
+            </label>
             <input
               type="text"
               id="authorName"
               value={formData.authorName}
               onChange={(e) => handleInputChange('authorName', e.target.value)}
               placeholder="Enter your name"
-              className={errors.authorName ? 'error' : ''}
-              disabled={isSubmitting}
+              className={`${errors.authorName ? 'error' : ''} ${isAuthenticated ? 'field-readonly' : ''}`}
               readOnly={isAuthenticated}
             />
             {errors.authorName && <span className="error-message">{errors.authorName}</span>}
@@ -532,13 +608,14 @@ export default function SampleForm() {
                 {geoLoading ? '📡 Locating...' : '📍 Use Current Location'}
               </button>
               {accuracy !== null && (
-                <span
+                <button
+                  type="button"
                   className={`accuracy-badge accuracy-${getAccuracyColor(accuracy)}`}
                   onClick={() => setShowAccuracyInfo(true)}
-                  style={{ cursor: 'pointer' }}
+                  aria-label={`GPS accuracy: ${getAccuracyLabel(accuracy)}, ${Math.round(accuracy)} meters. Click for details.`}
                 >
                   {getAccuracyLabel(accuracy)} ({Math.round(accuracy)}m)
-                </span>
+                </button>
               )}
             </div>
 
@@ -564,6 +641,7 @@ export default function SampleForm() {
             <input type="hidden" name="longitude" value={formData.longitude} />
 
             {/* Address (optional) */}
+            <label htmlFor="address" className="sr-only">Address (optional)</label>
             <input
               type="text"
               id="address"
@@ -864,23 +942,10 @@ export default function SampleForm() {
 
       {/* GPS Accuracy Info Modal */}
       {showAccuracyInfo && (
-        <div className="modal-overlay" onClick={() => setShowAccuracyInfo(false)}>
-          <div className="accuracy-modal" onClick={(e) => e.stopPropagation()}>
-            <h3>📍 GPS Accuracy</h3>
-            <p className="accuracy-value">
-              {getAccuracyLabel(accuracy)} ({accuracy !== null ? `${Math.round(accuracy)}m` : 'N/A'})
-            </p>
-            <p>GPS accuracy indicates how precise your location is. A smaller number means higher accuracy.</p>
-            <ul>
-              <li>🟢 ≤10m: Excellent — suitable for precise mapping</li>
-              <li>🟡 10-30m: Moderate — generally acceptable</li>
-              <li>🔴 &gt;30m: Poor — consider moving to a more open area</li>
-            </ul>
-            <button className="btn-primary" onClick={() => setShowAccuracyInfo(false)}>
-              Got it
-            </button>
-          </div>
-        </div>
+        <AccuracyModal
+          accuracy={accuracy}
+          onClose={() => setShowAccuracyInfo(false)}
+        />
       )}
 
       <style>{`
@@ -892,20 +957,56 @@ export default function SampleForm() {
         .auth-prompt {
           text-align: center;
           padding: var(--spacing-2xl) var(--spacing-lg);
+          background: linear-gradient(135deg, #f0fdfa 0%, #e0f2fe 100%);
+          border-radius: var(--radius-lg);
+          border: 1px solid var(--color-border);
+        }
+        .auth-prompt-icon {
+          font-size: 3rem;
+          margin-bottom: var(--spacing-md);
+        }
+        .auth-prompt-title {
+          font-size: 1.25rem;
+          font-weight: 600;
+          color: var(--color-text);
+          margin-bottom: var(--spacing-sm);
+        }
+        .auth-prompt-text {
+          font-size: 0.875rem;
+          color: var(--color-text-muted);
+          margin-bottom: var(--spacing-lg);
+          max-width: 360px;
+          margin-left: auto;
+          margin-right: auto;
+        }
+        .auth-prompt-actions {
+          display: flex;
+          gap: var(--spacing-sm);
+          justify-content: center;
+          flex-wrap: wrap;
+        }
+        .auth-prompt-btn {
+          padding: var(--spacing-sm) var(--spacing-xl);
+          text-decoration: none;
+          border-radius: var(--radius-md);
+          font-weight: 500;
+          font-size: 0.875rem;
+          min-height: 44px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
         }
 
-        .auth-prompt p {
-          margin-bottom: var(--spacing-md);
-          font-size: 1rem;
+        .author-name-hint {
+          font-size: 0.75rem;
+          font-weight: 400;
           color: var(--color-text-muted);
         }
-
-        .auth-prompt .btn-primary {
-          display: inline-block;
-          margin: var(--spacing-xs);
-          text-decoration: none;
+        .field-readonly {
+          background-color: var(--color-background);
+          color: var(--color-text-muted);
+          cursor: not-allowed;
         }
-
         .card-title {
           font-size: 1.5rem;
           margin-bottom: var(--spacing-lg);
@@ -940,12 +1041,36 @@ export default function SampleForm() {
         }
 
         .success-banner {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
           background-color: #dcfce7;
           color: #166534;
           padding: var(--spacing-md);
           border-radius: var(--radius-md);
           margin-bottom: var(--spacing-md);
           font-weight: 500;
+        }
+        .success-dismiss {
+          background: none;
+          border: none;
+          color: #166534;
+          font-size: 1.25rem;
+          cursor: pointer;
+          padding: 0.25rem;
+          line-height: 1;
+          min-width: 32px;
+          min-height: 32px;
+        }
+        .sr-only {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0,0,0,0);
+          border: 0;
         }
 
         .success-link {
@@ -1077,8 +1202,8 @@ export default function SampleForm() {
           position: absolute;
           top: -6px;
           right: -6px;
-          width: 28px;
-          height: 28px;
+          width: 44px;
+          height: 44px;
           border-radius: 50%;
           background-color: rgba(0, 0, 0, 0.7);
           color: white;

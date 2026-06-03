@@ -6,6 +6,7 @@ import SampleMap from './components/SampleMap';
 import SampleList from './components/SampleList';
 import { SampleDetail } from './components/SampleDetail';
 import AdminDashboard from './components/AdminDashboard';
+import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import MySamplesPage from './pages/MySamplesPage';
@@ -45,12 +46,13 @@ function App() {
       <Layout>
         <ErrorBoundary>
           <Routes>
-            <Route path="/" element={<SampleForm />} />
+            <Route path="/" element={<HomePage />} />
+            <Route path="/submit" element={<SampleForm />} />
             <Route path="/map" element={<SampleMap />} />
             <Route path="/list" element={<SampleList />} />
             <Route path="/sample/" element={<Navigate to="/list" replace />} />
             <Route path="/sample/:id" element={<SampleDetail />} />
-            <Route path="/admin/login" element={<LoginPage />} />
+            <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/my-samples" element={<MySamplesPage />} />
             <Route

@@ -21,9 +21,9 @@ const LEVEL_CONFIG = {
 } as const;
 
 const INFO_TEXT = {
-  high: 'This sample scored ≥0.8 across all 6 quality factors (GPS, range validity, spatial outlier, metadata, temporal consistency, photo presence). Data is highly reliable.',
-  moderate: 'This sample scored 0.5–0.79 across quality factors. Some factors are below ideal thresholds. Review the breakdown for details.',
-  low: 'This sample scored <0.5 across quality factors. Multiple factors scored poorly. Consider re-sampling or manual review.',
+  high: 'This sample scored ≥0.8 across all quality factors. Data is highly reliable.',
+  moderate: 'This sample scored 0.5–0.79. Some factors are below ideal thresholds.',
+  low: 'This sample scored <0.5. Multiple factors scored poorly. Consider re-sampling.',
   none: 'Quality score has not been computed yet. Submit or update the sample to trigger scoring.',
 };
 
@@ -131,27 +131,27 @@ export const QualityScoreBadge = ({ score, size = 'sm', clickable = true }: Qual
         }
 
         .quality-high {
-          background: #dcfce7;
-          color: #166534;
+          background: var(--color-approved-bg);
+          color: var(--color-approved-text);
           border: 1px solid #bbf7d0;
         }
 
         .quality-moderate {
-          background: #fef3c7;
-          color: #92400e;
+          background: var(--color-pending-bg);
+          color: var(--color-pending-text);
           border: 1px solid #fde68a;
         }
 
         .quality-low {
-          background: #fee2e2;
-          color: #991b1b;
+          background: var(--color-rejected-bg);
+          color: var(--color-rejected-text);
           border: 1px solid #fecaca;
         }
 
         .quality-none {
-          background: #f3f4f6;
-          color: #6b7280;
-          border: 1px solid #e5e7eb;
+          background: var(--color-background);
+          color: var(--color-text-muted);
+          border: 1px solid var(--color-border);
         }
 
         .quality-info-popup {
@@ -159,9 +159,9 @@ export const QualityScoreBadge = ({ score, size = 'sm', clickable = true }: Qual
           top: calc(100% + 6px);
           right: 0;
           z-index: 100;
-          background: var(--color-surface, white);
-          border: 1px solid var(--color-border, #e5e7eb);
-          border-radius: var(--radius-lg, 8px);
+          background: var(--color-surface);
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-lg);
           padding: 0.75rem 1rem;
           min-width: 240px;
           max-width: 320px;
@@ -177,7 +177,7 @@ export const QualityScoreBadge = ({ score, size = 'sm', clickable = true }: Qual
         }
 
         .quality-info-text {
-          color: var(--color-text-muted, #6b7280);
+          color: var(--color-text-muted);
           margin-bottom: 0.5rem;
         }
 
@@ -186,7 +186,7 @@ export const QualityScoreBadge = ({ score, size = 'sm', clickable = true }: Qual
           flex-wrap: wrap;
           gap: 0.5rem;
           padding-top: 0.4rem;
-          border-top: 1px solid var(--color-border, #e5e7eb);
+          border-top: 1px solid var(--color-border);
         }
 
         .legend-item {

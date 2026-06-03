@@ -86,6 +86,10 @@ model Sample {
 
   @@index([qualityScore])
   @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([authorName])
+  @@index([locationId])
 }
 
 model Photo {

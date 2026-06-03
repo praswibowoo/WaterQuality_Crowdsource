@@ -302,6 +302,10 @@ export default function MetadataPicker({
           color: var(--color-text-muted);
           line-height: 1.3;
           flex: 1;
+          overflow: hidden;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
         }
 
         .metadata-current-selection {

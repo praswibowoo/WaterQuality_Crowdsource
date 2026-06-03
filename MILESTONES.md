@@ -139,7 +139,7 @@
 
 | Feature ID | Feature | Priority | Status |
 |------------|---------|----------|--------|
-| WQ-048 | Admin login with username/password (session-based, bcrypt) | 🔴 Blocker | ✅ Done |
+| WQ-048 | Admin login with username/password (httpOnly cookie sessions, bcrypt) | 🔴 Blocker | ✅ Done |
 | WQ-049 | Admin can delete approved and rejected samples | 🟡 High | ✅ Done |
 | WQ-050 | Photo thumbnails, status revert, search by author, sample stats on Admin dashboard | 🟡 High | ✅ Done |
 
@@ -148,7 +148,7 @@
 | Exit Criteria | Status |
 |--------------|--------|
 | Admin login works with username "admin" and password "admin123" | ✅ Verified |
-| JWT token stored in localStorage and sent on protected requests | ✅ Verified *(Superseded by WQ-061 — now uses httpOnly cookie sessions)* |
+| httpOnly cookie session stored and sent on protected requests | ✅ Verified *(Migrated from JWT in WQ-061)* |
 | Unauthenticated users redirected to `/admin/login` when accessing `/admin` | ✅ Verified |
 | Admin can delete samples with `approved` or `rejected` status | ✅ Verified |
 | Photo thumbnails visible on admin sample cards | ✅ Verified |
@@ -320,17 +320,15 @@
 
 ---
 
-## Future: AI Analysis (v0.7.0+) 📝 Planned
+## Milestone 7.5: LAQUAtwin ISE Fields (v0.7.0) ✅ Done
 
-**Goal**: Scope and implement the AI microservice for water quality analysis.
+**Goal**: Add LAQUAtwin ISE (Ion-Selective Electrode) parameters and remove non-LAQUAtwin fields.
 
 | Feature ID | Feature | Priority | Status |
 |------------|---------|----------|--------|
-| WQ-071 | AI Analysis microservice skeleton | 🟢 Medium | 📝 Planned |
+| WQ-084 | Add LAQUAtwin ISE (NO₃⁻, Ca²⁺, K⁺, Na⁺) + remove non-LAQUAtwin (DO, turbidity, TDS, ORP) | 🔴 Blocker | ✅ Done |
 
-**Notes:**
-- WQ-063 CSP completed in v1.0.0 (PostGIS milestone)
-- WQ-071 deferred until concrete AI model/requirements defined by research team
+**Exit Criteria** ✅ All complete
 
 ---
 
@@ -469,7 +467,7 @@
 
 ---
 
-## Milestone 10: Data Quality Scoring & Spatial Interpolation (v1.1.0) 🔄 In Progress
+## Milestone 10: Data Quality Scoring & Spatial Interpolation (v1.1.0) ✅ Phase 1 Complete
 
 **Goal**: Make crowdsourced water quality data scientifically defensible through automated quality assurance, and enable spatial pattern visualization via geostatistical interpolation.
 
@@ -623,23 +621,19 @@
 | WQ-133 | Unit tests for user registration + data isolation | 🟡 High | ✅ Done |
 | WQ-134 | Full regression testing | 🟡 High | ✅ Done |
 
-**Exit Criteria**
-| Criteria | Status |
-|----------|--------|
-| `POST /auth/register` creates user with name, username, bcrypt password | ✅ Done |
-| Registration rate limited to 5 attempts per 15 minutes per IP | ✅ Done |
-| `POST /api/v1/samples` requires login; auto-sets userId and authorName | ✅ Done |
-| `GET /api/v1/samples` returns only current user's samples (non-admin) | ✅ Done |
-| `GET /api/v1/samples` returns all samples (admin) | ✅ Done |
-| `GET /api/v1/samples/:id` remains public | ✅ Done |
-| Admin can list users, create, deactivate, reset password | ✅ Done |
-| Admin-created users get generated temp password (shown once) | ✅ Done |
-| Admin password reset kills user's active sessions | ✅ Done |
-| Register page renders with validation | ✅ Done |
-| Sample form requires login, shows link if unauthenticated | ✅ Done |
-| Admin dashboard shows Users tab with management UI | ✅ Done |
-| Existing samples (userId=null) remain visible | ✅ Done |
-| `npm run lint && npm run typecheck` pass in all workspaces | ✅ Done |
+---
+
+## Future: AI Analysis (v0.7.0+) 📝 Planned
+
+**Goal**: Scope and implement the AI microservice for water quality analysis.
+
+| Feature ID | Feature | Priority | Status |
+|------------|---------|----------|--------|
+| WQ-071 | AI Analysis microservice skeleton | 🟢 Medium | 📝 Planned |
+
+**Notes:**
+- WQ-063 CSP completed in v1.0.0 (PostGIS milestone)
+- WQ-071 deferred until concrete AI model/requirements defined by research team
 
 ---
 

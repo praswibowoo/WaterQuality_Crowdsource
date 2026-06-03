@@ -80,7 +80,7 @@ export const getUserByIdSchema = z.object({
 
 // Auth validation schemas
 export const loginSchema = z.object({
-  username: z.string().min(1, 'Username is required'),
+  username: z.string().min(1, 'Username is required').max(30, 'Username too long'),
   password: z.string().min(1, 'Password is required').max(128, 'Password too long'),
 });
 

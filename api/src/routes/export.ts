@@ -1,18 +1,26 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../db/prisma';
 import { asyncHandler } from '../middleware/errorHandler';
+import { authMiddleware, type AuthenticatedRequest } from '../middleware/auth';
 
 const router = Router();
 
-// GET /api/v1/samples/export - Export samples as CSV
+// GET /api/v1/samples/export - Export samples as CSV (requires auth)
 router.get(
   '/export',
+  authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    const currentUser = authReq.auth!;
+
     const { status } = req.query;
 
-    const where = {};
-    if (status && typeof status === 'string') {
-      (where as Record<string, string>).status = status;
+    // Non-admin users can only export approved samples; admins can export all
+    const where: Record<string, unknown> = {};
+    if (currentUser.role !== 'admin') {
+      where.status = 'approved';
+    } else if (status && typeof status === 'string') {
+      where.status = status;
     }
 
     const samples = await prisma.sample.findMany({

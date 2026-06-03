@@ -1,10 +1,13 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { useSample, useLocationSamples } from '../hooks/useSamples';
 import { MEASUREMENT_FIELDS } from '../utils/measurements';
 import { findWaterBodyType, findLandUse } from '../utils/metadata';
 import TrendChart from './TrendChart';
 import QualityScoreBadge from './QualityScoreBadge';
 import QualityScoreBreakdown from './QualityScoreBreakdown';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface MeasurementDisplayProps {
   label: string;
@@ -38,6 +41,7 @@ export const SampleDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: sample, isLoading, error } = useSample(id!);
+  const [lightboxPhoto, setLightboxPhoto] = useState<{ src: string; alt: string } | null>(null);
 
   const handleBack = () => {
     if (window.history.length > 1) {
@@ -232,13 +236,57 @@ export const SampleDetail = () => {
             <h3>📷 Photos ({sample.photos.length})</h3>
             <div className="photo-gallery">
               {sample.photos.map((photo) => (
-                <div key={photo.id} className="photo-gallery-item">
+                <button
+                  key={photo.id}
+                  type="button"
+                  className="photo-gallery-item"
+                  onClick={() => setLightboxPhoto({ src: `/api/v1/uploads/${photo.path}`, alt: photo.caption || 'Sample photo' })}
+                  aria-label={`View photo ${photo.caption || ''}`}
+                >
                   <img
-                    src={`/uploads/${photo.path}`}
+                    src={`/api/v1/uploads/${photo.path}`}
                     alt={photo.caption || 'Sample photo'}
+                    loading="lazy"
+                    width={120}
+                    height={120}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
                   />
-                </div>
+                </button>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Photo Lightbox */}
+        {lightboxPhoto && (
+          <PhotoLightbox
+            src={lightboxPhoto.src}
+            alt={lightboxPhoto.alt}
+            onClose={() => setLightboxPhoto(null)}
+          />
+        )}
+
+        {/* 📍 Location Map */}
+        {sample.location && (
+          <div className="sample-detail-section">
+            <h3>📍 Location</h3>
+            <div className="sample-detail-map">
+              <MapContainer
+                center={[sample.location.latitude, sample.location.longitude]}
+                zoom={15}
+                scrollWheelZoom={false}
+                style={{ height: '200px', width: '100%', borderRadius: 'var(--radius-md)' }}
+              >
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                  url={import.meta.env.VITE_MAP_TILE_URL || 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'}
+                />
+                <Marker position={[sample.location.latitude, sample.location.longitude]}>
+                  <Popup>{sample.authorName} — {sample.location.address || 'No address'}</Popup>
+                </Marker>
+              </MapContainer>
             </div>
           </div>
         )}
@@ -434,6 +482,15 @@ export const SampleDetail = () => {
           aspect-ratio: 1;
           border-radius: var(--radius-md);
           overflow: hidden;
+          border: none;
+          padding: 0;
+          cursor: pointer;
+          background: var(--color-background);
+          transition: transform var(--transition-fast);
+        }
+
+        .photo-gallery-item:hover {
+          transform: scale(1.05);
         }
 
         .photo-gallery-item img {
@@ -441,9 +498,64 @@ export const SampleDetail = () => {
           height: 100%;
           object-fit: cover;
         }
+
+        /* Photo Lightbox */
+        .lightbox-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.9);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 3000;
+          padding: var(--spacing-lg);
+        }
+
+        .lightbox-img {
+          max-width: 90vw;
+          max-height: 85vh;
+          object-fit: contain;
+          border-radius: var(--radius-md);
+        }
+
+        .lightbox-close {
+          position: absolute;
+          top: var(--spacing-md);
+          right: var(--spacing-md);
+          background: rgba(255, 255, 255, 0.2);
+          border: none;
+          color: white;
+          font-size: 2rem;
+          cursor: pointer;
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        /* Location Map */
+        .sample-detail-map {
+          border-radius: var(--radius-md);
+          overflow: hidden;
+          border: 1px solid var(--color-border);
+        }
       `}</style>
     </div>
   );
 };
+
+function PhotoLightbox({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
+  const containerRef = useFocusTrap(true, onClose);
+  return (
+    <div className="lightbox-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="Photo viewer">
+      <div ref={containerRef} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
+        <img src={src} alt={alt} className="lightbox-img" />
+        <button className="lightbox-close" onClick={onClose} aria-label="Close photo">✕</button>
+      </div>
+    </div>
+  );
+}
 
 export default SampleDetail;

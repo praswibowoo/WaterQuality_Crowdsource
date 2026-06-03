@@ -1,4 +1,5 @@
 import React, { useMemo, useCallback, useEffect, useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, CircleMarker, useMap, useMapEvents } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-markercluster';
 import 'react-leaflet-markercluster/styles';
@@ -118,7 +119,7 @@ const SampleMarker = React.memo(function SampleMarker({
           {sample.notes && (
             <div className="popup-notes">{sample.notes}</div>
           )}
-          <a href={`/sample/${sample.id}`} className="popup-link">View details →</a>
+          <Link to={`/sample/${sample.id}`} className="popup-link">View details →</Link>
         </div>
       </Popup>
     </Marker>
@@ -225,6 +226,7 @@ export default function SampleMap() {
     return (
       <div className="map-error">
         <span>Failed to load samples</span>
+        <button className="retry-btn" onClick={() => window.location.reload()}>Retry</button>
       </div>
     );
   }
@@ -412,6 +414,14 @@ export default function SampleMap() {
           gap: var(--spacing-sm);
           color: var(--color-text-muted);
         }
+        .retry-btn {
+          padding: var(--spacing-xs) var(--spacing-md);
+          background: var(--color-surface);
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-md);
+          cursor: pointer;
+          font-size: 0.8rem;
+        }
 
         .sample-map-container {
           height: 100vh;
@@ -435,7 +445,8 @@ export default function SampleMap() {
           bottom: 20px;
           right: 20px;
           z-index: 1000;
-          padding: 8px 14px;
+          padding: 10px 16px;
+          min-height: 44px;
           background: white;
           border: 2px solid #3b82f6;
           border-radius: 24px;
@@ -578,7 +589,8 @@ export default function SampleMap() {
           bottom: 70px;
           right: 20px;
           z-index: 1000;
-          padding: 8px 14px;
+          padding: 10px 16px;
+          min-height: 44px;
           background: white;
           border: 2px solid #0d9488;
           border-radius: 24px;
@@ -604,7 +616,8 @@ export default function SampleMap() {
           bottom: 20px;
           left: 20px;
           z-index: 1000;
-          padding: 8px 14px;
+          padding: 10px 16px;
+          min-height: 44px;
           background: white;
           border: 2px solid #0d9488;
           border-radius: 24px;
@@ -669,7 +682,7 @@ export default function SampleMap() {
         @media (max-width: 480px) {
           .nearby-overlay {
             top: auto;
-            bottom: 10px;
+            bottom: 70px;
             right: 10px;
             left: 10px;
             width: auto;

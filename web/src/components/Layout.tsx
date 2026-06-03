@@ -13,11 +13,12 @@ export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const { pendingCount } = useOfflineSync();
 
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
   const { data: adminPendingCount } = usePendingCount();
 
   const baseNavItems = [
-    { path: '/', label: 'Submit', icon: '📝' },
+    { path: '/', label: 'Home', icon: '🏠' },
+    { path: '/submit', label: 'Submit', icon: '📝' },
     { path: '/map', label: 'Map', icon: '🗺️' },
     { path: '/list', label: 'Samples', icon: '📋' },
   ];
@@ -26,12 +27,11 @@ export default function Layout({ children }: LayoutProps) {
     ? [
         ...baseNavItems,
         { path: '/my-samples', label: 'My Samples', icon: '👤' },
-        { path: '/admin', label: 'Admin', icon: '🔒', badge: adminPendingCount },
+        ...(user?.role === 'admin'
+          ? [{ path: '/admin', label: 'Admin', icon: '🔒', badge: adminPendingCount }]
+          : []),
       ]
-    : [
-        ...baseNavItems,
-        { path: '/admin', label: 'Admin', icon: '🔒', badge: adminPendingCount },
-      ];
+    : baseNavItems;
 
   return (
     <div className="layout">
@@ -128,11 +128,12 @@ export default function Layout({ children }: LayoutProps) {
           background: rgba(255, 255, 255, 0.2);
           border: none;
           color: white;
-          padding: 0.25rem 0.5rem;
+          padding: var(--spacing-sm) var(--spacing-md);
           border-radius: var(--radius-md);
           font-size: 0.75rem;
           cursor: pointer;
           transition: background var(--transition-fast);
+          min-height: 44px;
         }
 
         .btn-logout:hover {

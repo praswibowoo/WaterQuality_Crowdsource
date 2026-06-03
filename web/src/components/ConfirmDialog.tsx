@@ -1,3 +1,5 @@
+import { useFocusTrap } from '../hooks/useFocusTrap';
+
 interface ConfirmDialogProps {
   title: string;
   message: string;
@@ -17,16 +19,26 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const containerRef = useFocusTrap(true, onCancel);
+
   const colors: Record<string, { bg: string; hover: string }> = {
-    danger: { bg: '#dc2626', hover: '#b91c1c' },
-    warning: { bg: '#f59e0b', hover: '#d97706' },
-    info: { bg: '#3b82f6', hover: '#2563eb' },
+    danger: { bg: 'var(--color-error)', hover: '#b91c1c' },
+    warning: { bg: 'var(--color-warning)', hover: '#d97706' },
+    info: { bg: 'var(--color-primary)', hover: 'var(--color-primary-dark)' },
   };
 
   return (
     <div className="confirm-overlay" onClick={onCancel}>
-      <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
-        <h3 className="confirm-title">{title}</h3>
+      <div
+        ref={containerRef}
+        className="confirm-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirm-title"
+        onClick={(e) => e.stopPropagation()}
+        tabIndex={-1}
+      >
+        <h3 className="confirm-title" id="confirm-title">{title}</h3>
         <p className="confirm-message">{message}</p>
         <div className="confirm-actions">
           <button className="confirm-btn-cancel" onClick={onCancel}>
@@ -34,9 +46,7 @@ export default function ConfirmDialog({
           </button>
           <button
             className="confirm-btn-confirm"
-            style={{
-              backgroundColor: colors[variant].bg,
-            }}
+            style={{ backgroundColor: colors[variant].bg }}
             onClick={onConfirm}
           >
             {confirmLabel}
@@ -55,12 +65,13 @@ export default function ConfirmDialog({
           padding: var(--spacing-md);
         }
         .confirm-modal {
-          background: white;
+          background: var(--color-surface);
           border-radius: var(--radius-lg);
           padding: var(--spacing-lg);
           max-width: 400px;
           width: 100%;
           box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+          outline: none;
         }
         .confirm-title {
           font-size: 1.125rem;
@@ -80,12 +91,16 @@ export default function ConfirmDialog({
         }
         .confirm-btn-cancel {
           padding: var(--spacing-sm) var(--spacing-md);
-          background: white;
+          background: var(--color-surface);
           border: 1px solid var(--color-border);
           border-radius: var(--radius-md);
           font-size: 0.875rem;
           cursor: pointer;
           min-height: 44px;
+        }
+        .confirm-btn-cancel:focus-visible {
+          outline: 2px solid var(--color-primary);
+          outline-offset: 2px;
         }
         .confirm-btn-confirm {
           padding: var(--spacing-sm) var(--spacing-md);
@@ -100,6 +115,10 @@ export default function ConfirmDialog({
         }
         .confirm-btn-confirm:hover {
           opacity: 0.9;
+        }
+        .confirm-btn-confirm:focus-visible {
+          outline: 2px solid var(--color-primary);
+          outline-offset: 2px;
         }
       `}</style>
     </div>

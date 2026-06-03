@@ -20,6 +20,25 @@
   --color-pending: #f59e0b;
   --color-approved: #22c55e;
   --color-rejected: #ef4444;
+
+  /* Status Badge Colors (background + text pairs) */
+  --color-pending-bg: #fef3c7;
+  --color-pending-text: #92400e;
+  --color-approved-bg: #dcfce7;
+  --color-approved-text: #166534;
+  --color-rejected-bg: #fee2e2;
+  --color-rejected-text: #991b1b;
+  --color-info-bg: #dbeafe;
+  --color-info-text: #1e40af;
+
+  /* Role Badge Colors */
+  --color-admin-role-bg: #e0e7ff;
+  --color-admin-role-text: #4338ca;
+  --color-user-role-bg: #f0fdf4;
+  --color-user-role-text: #166534;
+
+  /* Overlay */
+  --color-overlay: rgba(0, 0, 0, 0.5);
   
   /* Spacing */
   --spacing-xs: 0.25rem;
@@ -545,4 +564,16 @@ html {
 
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--color-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--spacing-md);
 }

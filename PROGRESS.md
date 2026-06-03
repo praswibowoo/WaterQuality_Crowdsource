@@ -7,12 +7,12 @@
 
 | Status | Meaning |
 |--------|---------|
-| 📝 Planned | Spec exists, not yet assigned |
+| 📝 Planned | Spec exists in `docs/`, not yet assigned |
 | 📝 Future Backlog | Pool of ideas for future milestones (not yet scoped) |
 | 🔄 In Progress | Assigned to Developer |
 | 🔍 Awaiting QC | Implemented, waiting for Quality Control |
 | 🐞 Bug Found | QC found issues, back to Developer |
-| ✅ Done | QC passed and user acknowledged |
+| ✅ Done | QC passed, user acknowledged, **spec file erased from `docs/`** |
 | ❌ Cancelled | Discarded or superseded |
 
 ---
@@ -68,8 +68,8 @@
 | WQ-044 | Fix map page blank — `.map-container` CSS class collision | ✅ Done | Hotfix v0.2.1 | Lead Manager | @developer | — | 2026-05-23 | Renamed SampleMap class to `.sample-map-container` with inline styles |
 | WQ-045 | Fix photo API route mounting mismatch | ✅ Done | Hotfix v0.2.1 | Lead Manager | @developer | — | 2026-05-23 | Fixed router mounting in index.ts: photos at /api/v1/photos, samples at /api/v1/samples |
 | WQ-046 | Add `/uploads` proxy to Vite dev config | ✅ Done | Hotfix v0.2.1 | Lead Manager | @developer | — | 2026-05-23 | Added /uploads proxy pointing to http://localhost:3001 in vite.config.ts |
-| WQ-047 | Fix photo URL construction in SampleDetail | ✅ Done | Hotfix v0.2.1 | Lead Manager | @developer | — | 2026-05-23 | Changed photo URL to /uploads/${photo.path} (backend serves at /uploads) |
-| WQ-048 | Admin login with username/password (JWT, simple hardcoded) | ✅ Done | v0.4.0 | Lead Manager | @developer | — | 2026-05-23 | POST /api/v1/auth/login, JWT middleware, AuthContext, /admin/login route, protected /admin route |
+| WQ-047 | Fix photo URL construction in SampleDetail | ✅ Done | Hotfix v0.2.1 | Lead Manager | @developer | — | 2026-05-23 | Changed photo URL to /api/v1/uploads/${photo.path} (backend serves at /api/v1/uploads) |
+| WQ-048 | Admin login with username/password (httpOnly cookie sessions) | ✅ Done | v0.4.0 | Lead Manager | @developer | — | 2026-05-23 | POST /api/v1/auth/login, httpOnly cookie sessions, AuthContext, /login route, protected /admin route |
 | WQ-049 | Admin can delete approved and rejected samples | ✅ Done | v0.4.0 | Lead Manager | @developer | — | 2026-05-23 | Delete button with confirmation dialog, useDeleteSample hook wired to TanStack Query invalidateQueries |
 | WQ-050 | Photo thumbnails, status revert, search by author, sample stats on Admin dashboard | ✅ Done | v0.4.0 | Lead Manager | @developer | — | 2026-05-23 | Photo thumbnails (64x64), revert to pending button, real-time author search, 4 color-coded stat badges |
 | WQ-051 | Fix dependency version typos (dotenv, multer) | ✅ Done | Hotfix v0.4.1 | Lead Manager | @developer | — | 2026-05-25 | Changed dotenv to ^16.4.5, multer to ^1.4.5-lts.1; npm install passes |
@@ -128,8 +128,8 @@
 | WQ-106 | Performance benchmark + migration safety test | ✅ Done | v1.0.0 | Lead Manager | — | — | — | Migration safety test verifies idempotent re-run; spatial endpoint tests cover all edge cases
 | WQ-107 | Full regression (lint/typecheck/manual QA) | ✅ Done | v1.0.0 | Lead Manager | — | — | — | 44/44 API tests pass, 77/77 web tests pass, lint/typecheck/build clean in both workspaces
 | WQ-108 | Data Quality Scoring Engine | ✅ Done | v1.1.0 AI Ready | Lead Manager | @lead-manager | — | — | Heuristic 0-1 reliability score per sample; Prisma schema, scoring service, API endpoint, tests, frontend badge + breakdown |
-| WQ-109 | Spatial Interpolation Heatmap (IDW) | 📝 Planned | v1.1.0 AI Ready | Lead Manager | — | — | — | Frontend heatmap overlay using Inverse Distance Weighting on existing map |
-| WQ-110 | ML Prediction Engine (Random Forest/XGBoost) | 📝 Future Backlog | v1.2.0+ | — | — | — | — | Deferred until ≥200 samples collected; Python microservice in services/ai/ |
+| WQ-109 | Spatial Interpolation Heatmap (IDW) | 📝 Planned | v1.1.0 AI Ready | Lead Manager | — | — | — | Frontend heatmap overlay using Inverse Distance Weighting on existing map. Spec: docs/wq-109-spatial-interpolation-heatmap-spec.md |
+| WQ-110 | ML Prediction Engine (Random Forest/XGBoost) | 📝 Future Backlog | v1.2.0+ | — | — | — | — | Deferred until ≥200 samples collected; Python microservice in services/ai/. Spec: docs/wq-110-ml-prediction-engine-spec.md |
 | WQ-111 | Add `trust proxy` config for reverse proxy (rate limiting fix) | ✅ Done | Hotfix v1.1.1 | Lead Manager | @lead-manager | — | — | Rate limiting ineffective behind reverse proxy without trust proxy |
 | WQ-112 | Fix API build to include `prisma generate` before `tsc` | ✅ Done | Hotfix v1.1.1 | Lead Manager | @lead-manager | — | — | Fresh deploys fail without generated Prisma client |
 | WQ-113 | Add CSP allowed domains for external stylesheets (Leaflet, Google Fonts) | ✅ Done | Hotfix v1.1.1 | Lead Manager | @lead-manager | — | — | CSP enforce mode blocks Leaflet CSS and Google Fonts from CDN |
@@ -156,7 +156,7 @@
 | WQ-134 | Full regression testing | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | 90/90 API tests + 77/77 web tests + lint + typecheck + build all clean |
 | WQ-135 | Admin password reset from user management | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | PUT /users/:id/reset-password; admin sets new password |
 | WQ-136 | Registration rate limiting (5/15min per IP) | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | Prevent spam registrations; same rate limit as login |
-| WQ-137 | User list pagination + sorting | 📝 Planned | v1.2.0 | Lead Manager | — | — | — | Paginate user list; sort by name/username/role/date |
+| WQ-137 | User list pagination + sorting | 📝 Planned | v1.2.0 | Lead Manager | — | — | — | Paginate user list; sort by name/username/role/date. Spec: docs/wq-137-user-list-pagination-sorting-spec.md |
 | WQ-138 | Kill user sessions on admin password reset | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | When admin resets password, kill all sessions for that user |
 | WQ-139 | Prevent admin self-deactivation | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | Admin UI hides deactivate button for own account |
 | WQ-140 | Generate temp password on admin user creation | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | Admin creates user → system generates random password → shown once |
@@ -313,7 +313,7 @@ Note: User model removed in favor of anonymous crowdsourcing (authorName field)
 - `npm run lint`: ✅ Pass
 - `npm run typecheck`: ✅ Pass
 - `npm run build`: ✅ Pass
-- `npm run test`: ✅ 90/90 tests pass
+- `npm run test`: ✅ 131/131 tests pass
 
 ### Database
 - Prisma generate: ✅ Successful

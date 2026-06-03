@@ -187,6 +187,11 @@ router.put(
       },
     });
 
+    // Kill sessions if user was deactivated (H7)
+    if (active === false) {
+      await killUserSessions(id);
+    }
+
     res.json({ user: updated });
   })
 );
@@ -225,6 +230,15 @@ router.put(
 
     // Kill all active sessions for this user (WQ-138)
     await killUserSessions(id);
+
+    // M1: Log the password reset event
+    const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
+      || req.socket.remoteAddress
+      || null;
+    const userAgent = req.headers['user-agent'] || null;
+    await prisma.loginLog.create({
+      data: { userId: id, action: 'password_change', ipAddress, userAgent },
+    }).catch((err) => console.warn('Failed to log password reset:', err));
 
     res.json({
       message: 'Password reset successfully',

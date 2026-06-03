@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { AxiosError } from 'axios';
 
@@ -10,6 +10,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,8 +18,15 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      await login(username, password);
-      navigate('/admin');
+      const loggedInUser = await login(username, password);
+      const from = (location.state as { from?: { pathname: string } })?.from?.pathname;
+      if (from && loggedInUser?.role === 'admin') {
+        navigate(from, { replace: true });
+      } else if (loggedInUser?.role === 'admin') {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate('/', { replace: true });
+      }
     } catch (err) {
       const axiosError = err as AxiosError<{ message?: string }>;
       if (axiosError.response?.status === 401) {
@@ -42,9 +50,9 @@ export default function LoginPage() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-header">
-          <span className="login-icon">🔐</span>
-          <h1>Admin Login</h1>
-          <p>Sign in to access the admin dashboard</p>
+          <span className="login-icon">🔑</span>
+          <h1>Sign In</h1>
+          <p>Sign in to submit water quality samples</p>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -96,7 +104,6 @@ export default function LoginPage() {
           background: linear-gradient(135deg, #0d9488 0%, #134e4a 100%);
           padding: var(--spacing-lg);
         }
-
         .login-card {
           background: var(--color-surface);
           border-radius: var(--radius-xl);
@@ -105,62 +112,51 @@ export default function LoginPage() {
           max-width: 400px;
           box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
         }
-
         .login-header {
           text-align: center;
           margin-bottom: var(--spacing-xl);
         }
-
         .login-icon {
           font-size: 3rem;
           display: block;
           margin-bottom: var(--spacing-md);
         }
-
         .login-header h1 {
           font-size: 1.5rem;
           margin-bottom: var(--spacing-xs);
         }
-
         .login-header p {
           color: var(--color-text-muted);
           font-size: 0.875rem;
         }
-
         .login-card .input-group {
           margin-bottom: var(--spacing-md);
         }
-
         .login-card input {
           width: 100%;
         }
-
         .error-message {
-          background-color: #fee2e2;
-          color: #991b1b;
+          background-color: var(--color-rejected-bg);
+          color: var(--color-rejected-text);
           padding: var(--spacing-sm) var(--spacing-md);
           border-radius: var(--radius-md);
           margin-bottom: var(--spacing-md);
           font-size: 0.875rem;
         }
-
         .login-btn {
           width: 100%;
           padding: var(--spacing-md);
           font-size: 1rem;
         }
-
         .auth-switch {
           text-align: center;
           margin-top: var(--spacing-md);
           font-size: 0.875rem;
           color: var(--color-text-muted);
         }
-
         .auth-switch a {
           color: var(--color-primary);
         }
-
       `}</style>
     </div>
   );

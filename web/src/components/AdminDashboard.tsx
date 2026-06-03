@@ -79,13 +79,22 @@ type QualityScoreFilter = 'all' | 'high' | 'moderate' | 'low' | 'none';
 export default function AdminDashboard() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [qualityScoreFilter, setQualityScoreFilter] = useState<QualityScoreFilter>('all');
+  const [authorSearchInput, setAuthorSearchInput] = useState('');
   const [authorSearch, setAuthorSearch] = useState('');
+
+  // M6: Debounce author search by 300ms
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAuthorSearch(authorSearchInput.trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [authorSearchInput]);
 
   // Server-side filtering: pass status, qualityScore, and authorName to API
   const filters = {
     status: statusFilter === 'all' ? undefined : statusFilter,
     qualityScoreFilter: qualityScoreFilter === 'all' ? undefined : qualityScoreFilter,
-    authorName: authorSearch.trim() || undefined,
+    authorName: authorSearch || undefined,
     sortBy: 'createdAt' as const,
     sortOrder: 'desc' as const,
   };
@@ -95,10 +104,17 @@ export default function AdminDashboard() {
   const updateSample = useUpdateSample();
   const deleteSample = useDeleteSample();
   const [confirmAction, setConfirmAction] = useState<{
-    type: 'approve' | 'reject' | 'delete';
+    type: 'approve' | 'reject' | 'delete' | 'revert';
     sampleId: string;
     authorName: string;
   } | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+
+  const clearActionFeedback = () => {
+    setActionError(null);
+    setActionSuccess(null);
+  };
 
   // Auth context for password change + login history
   const { changePassword, getLoginHistory } = useAuth();
@@ -196,10 +212,14 @@ export default function AdminDashboard() {
 
   const handleConfirmApprove = async () => {
     if (!confirmAction) return;
+    clearActionFeedback();
     try {
       await updateSample.mutateAsync({ id: confirmAction.sampleId, data: { status: 'approved' } });
+      setActionSuccess('Sample approved successfully');
+      setTimeout(() => setActionSuccess(null), 3000);
     } catch (err) {
       console.error('Failed to approve sample:', err);
+      setActionError('Failed to approve sample');
     } finally {
       setConfirmAction(null);
     }
@@ -211,20 +231,35 @@ export default function AdminDashboard() {
 
   const handleConfirmReject = async () => {
     if (!confirmAction) return;
+    clearActionFeedback();
     try {
       await updateSample.mutateAsync({ id: confirmAction.sampleId, data: { status: 'rejected' } });
+      setActionSuccess('Sample rejected');
+      setTimeout(() => setActionSuccess(null), 3000);
     } catch (err) {
       console.error('Failed to reject sample:', err);
+      setActionError('Failed to reject sample');
     } finally {
       setConfirmAction(null);
     }
   };
 
-  const handleRevert = async (id: string) => {
+  const handleRevert = (id: string, author: string) => {
+    setConfirmAction({ type: 'revert', sampleId: id, authorName: author });
+  };
+
+  const handleConfirmRevert = async () => {
+    if (!confirmAction) return;
+    clearActionFeedback();
     try {
-      await updateSample.mutateAsync({ id, data: { status: 'pending' } });
+      await updateSample.mutateAsync({ id: confirmAction.sampleId, data: { status: 'pending' } });
+      setActionSuccess('Sample reverted to pending');
+      setTimeout(() => setActionSuccess(null), 3000);
     } catch (err) {
       console.error('Failed to revert sample:', err);
+      setActionError('Failed to revert sample');
+    } finally {
+      setConfirmAction(null);
     }
   };
 
@@ -234,11 +269,14 @@ export default function AdminDashboard() {
 
   const handleConfirmDelete = async () => {
     if (!confirmAction) return;
+    clearActionFeedback();
     try {
       await deleteSample.mutateAsync(confirmAction.sampleId);
+      setActionSuccess('Sample deleted');
+      setTimeout(() => setActionSuccess(null), 3000);
     } catch (err) {
       console.error('Failed to delete sample:', err);
-      alert('Failed to delete sample. Please try again.');
+      setActionError('Failed to delete sample. Please try again.');
     } finally {
       setConfirmAction(null);
     }
@@ -257,6 +295,7 @@ export default function AdminDashboard() {
     return (
       <div className="admin-error">
         <span>Failed to load samples</span>
+        <button className="retry-btn" onClick={() => window.location.reload()}>Retry</button>
       </div>
     );
   }
@@ -267,6 +306,10 @@ export default function AdminDashboard() {
         <h2 className="page-title">Admin Dashboard</h2>
         <p className="page-subtitle">Review and moderate water quality submissions</p>
       </div>
+
+      {/* Action feedback */}
+      {actionSuccess && <div className="form-success">{actionSuccess}</div>}
+      {actionError && <div className="form-error">{actionError}</div>}
 
       {/* Tab Navigation */}
       <div className="tab-nav">
@@ -300,8 +343,8 @@ export default function AdminDashboard() {
         <input
           type="text"
           placeholder="Search by author name..."
-          value={authorSearch}
-          onChange={(e) => setAuthorSearch(e.target.value)}
+          value={authorSearchInput}
+          onChange={(e) => setAuthorSearchInput(e.target.value)}
           className="search-input"
         />
       </div>
@@ -354,15 +397,15 @@ export default function AdminDashboard() {
           {samples.map((sample) => {
             const keyMeasurements = getKeyMeasurements(sample);
             return (
-              <div key={sample.id} className="admin-sample-card">
+              <Link to={`/sample/${sample.id}`} key={sample.id} className="admin-sample-card">
                 <div className="sample-card-icon">
                   {getSampleIcon(sample)}
                 </div>
                 <div className="sample-card-content">
                   <div className="sample-card-header">
-                    <Link to={`/sample/${sample.id}`} className="sample-card-title">
+                    <span className="sample-card-title">
                       {sample.authorName}
-                    </Link>
+                    </span>
                     <div className="admin-card-badges">
                       <QualityScoreBadge score={sample.qualityScore} />
                       <span className={`badge badge-${sample.status}`}>
@@ -422,7 +465,7 @@ export default function AdminDashboard() {
                       <>
                         <button
                           className="btn-revert"
-                          onClick={() => handleRevert(sample.id)}
+                          onClick={() => handleRevert(sample.id, sample.authorName)}
                           disabled={updateSample.isPending}
                         >
                           ↩ Revert to Pending
@@ -441,7 +484,7 @@ export default function AdminDashboard() {
                     )}
                   </div>
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>
@@ -450,7 +493,7 @@ export default function AdminDashboard() {
       {confirmAction?.type === 'approve' && (
         <ConfirmDialog
           title="Approve Sample"
-          message={`Are you sure you want to approve "${confirmAction.authorName}"'s submission? This will mark it as verified.`}
+          message={`Are you sure you want to approve ${confirmAction.authorName}'s submission? This will mark it as verified.`}
           confirmLabel="Approve"
           variant="info"
           onConfirm={handleConfirmApprove}
@@ -461,7 +504,7 @@ export default function AdminDashboard() {
       {confirmAction?.type === 'reject' && (
         <ConfirmDialog
           title="Reject Sample"
-          message={`Are you sure you want to reject "${confirmAction.authorName}"'s submission? This will mark it as invalid.`}
+          message={`Are you sure you want to reject ${confirmAction.authorName}'s submission? This will mark it as invalid.`}
           confirmLabel="Reject"
           variant="warning"
           onConfirm={handleConfirmReject}
@@ -469,10 +512,21 @@ export default function AdminDashboard() {
         />
       )}
 
+      {confirmAction?.type === 'revert' && (
+        <ConfirmDialog
+          title="Revert to Pending"
+          message={`Revert ${confirmAction.authorName}'s submission back to pending status?`}
+          confirmLabel="Revert"
+          variant="warning"
+          onConfirm={handleConfirmRevert}
+          onCancel={() => setConfirmAction(null)}
+        />
+      )}
+
       {confirmAction?.type === 'delete' && (
         <ConfirmDialog
           title="Delete Sample"
-          message={`Permanently delete "${confirmAction.authorName}"'s submission? This cannot be undone.`}
+          message={`Permanently delete ${confirmAction.authorName}'s submission? This cannot be undone.`}
           confirmLabel="Delete"
           variant="danger"
           onConfirm={handleConfirmDelete}
@@ -711,6 +765,12 @@ export default function AdminDashboard() {
           background-color: var(--color-surface);
           border-radius: var(--radius-lg);
           box-shadow: var(--shadow-sm);
+          text-decoration: none;
+          color: inherit;
+          transition: box-shadow var(--transition-fast);
+        }
+        .admin-sample-card:hover {
+          box-shadow: var(--shadow-md);
         }
 
         .sample-card-icon {
@@ -826,7 +886,7 @@ export default function AdminDashboard() {
         }
 
         .btn-approve:hover:not(:disabled) {
-          background-color: var(--color-primary-dark);
+          background-color: #16a34a;
         }
 
         .btn-reject {
@@ -878,6 +938,14 @@ export default function AdminDashboard() {
           padding: var(--spacing-2xl);
           gap: var(--spacing-sm);
           color: var(--color-text-muted);
+        }
+        .retry-btn {
+          padding: var(--spacing-xs) var(--spacing-md);
+          background: var(--color-surface);
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-md);
+          cursor: pointer;
+          font-size: 0.8rem;
         }
 
         .empty-state {

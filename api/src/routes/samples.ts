@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import path from 'path';
-import fs from 'fs';
+import fs from 'fs/promises';
 import prisma from '../db/prisma';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
 import { authMiddleware, type AuthenticatedRequest } from '../middleware/auth';
@@ -382,6 +382,17 @@ router.put(
       throw new AppError('Sample not found', 404);
     }
 
+    // Ownership check (C1): only the sample owner or admin can edit
+    const currentUser = (req as AuthenticatedRequest).auth!;
+    if (existingSample.userId !== currentUser.userId && currentUser.role !== 'admin') {
+      throw new AppError('Forbidden: you can only edit your own samples', 403);
+    }
+
+    // Status guard (C3): only admins can change sample status
+    if (status && currentUser.role !== 'admin') {
+      throw new AppError('Only admins can change sample status', 403);
+    }
+
     const sample = await prisma.sample.update({
       where: { id },
       data: {
@@ -427,11 +438,20 @@ router.delete(
       throw new AppError('Sample not found', 404);
     }
 
+    // Ownership check (C1): only the sample owner or admin can delete
+    const currentUser = (req as AuthenticatedRequest).auth!;
+    if (existingSample.userId !== currentUser.userId && currentUser.role !== 'admin') {
+      throw new AppError('Forbidden: you can only delete your own samples', 403);
+    }
+
     // Delete photo files from disk
-    for ( const photo of existingSample.photos) {
+    for (const photo of existingSample.photos) {
       const filePath = path.join(process.cwd(), 'uploads', photo.path);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
+      try {
+        await fs.access(filePath);
+        await fs.unlink(filePath);
+      } catch {
+        // File may have been deleted already; ignore
       }
     }
 

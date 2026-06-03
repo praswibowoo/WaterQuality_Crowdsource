@@ -6,7 +6,7 @@ interface RequireAuthProps {
 }
 
 export default function RequireAuth({ children }: RequireAuthProps) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -22,8 +22,8 @@ export default function RequireAuth({ children }: RequireAuthProps) {
         <div style={{
           width: '2rem',
           height: '2rem',
-          border: '3px solid #e0e0e0',
-          borderTopColor: '#2196F3',
+          border: '3px solid var(--color-border)',
+          borderTopColor: 'var(--color-primary)',
           borderRadius: '50%',
           animation: 'spin 0.8s linear infinite',
         }} />
@@ -33,7 +33,12 @@ export default function RequireAuth({ children }: RequireAuthProps) {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/admin/login" state={{ from: location }} replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // C6: Only admin users can access admin routes
+  if (user?.role !== 'admin') {
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;

@@ -28,6 +28,18 @@ describe('Login Schema', () => {
     const result = loginSchema.safeParse({ username: 'admin', password: maxPassword });
     expect(result.success).toBe(true);
   });
+
+  it('should reject username exceeding 30 characters (M3)', () => {
+    const longUsername = 'a'.repeat(31);
+    const result = loginSchema.safeParse({ username: longUsername, password: 'testPass123' });
+    expect(result.success).toBe(false);
+  });
+
+  it('should accept username at exactly 30 characters (M3)', () => {
+    const maxUsername = 'a'.repeat(30);
+    const result = loginSchema.safeParse({ username: maxUsername, password: 'testPass123' });
+    expect(result.success).toBe(true);
+  });
 });
 
 describe('Change Password Schema', () => {
