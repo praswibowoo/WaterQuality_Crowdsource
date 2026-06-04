@@ -38,20 +38,32 @@ router.post(
       },
     });
 
-    // Auto-login after registration (C5)
-    req.session.userId = user.id;
-    req.session.username = user.username;
-    req.session.role = user.role;
+    // Auto-login after registration (C5) — regenerate session to prevent fixation
+    req.session.regenerate(async (err) => {
+      if (err) {
+        console.error('Session regenerate error on registration:', err);
+        res.status(500).json({ error: 'Internal server error', message: 'Failed to create session' });
+        return;
+      }
 
-    await logLoginEvent(user.id, 'registration', req);
+      try {
+        req.session.userId = user.id;
+        req.session.username = user.username;
+        req.session.role = user.role;
 
-    res.status(201).json({
-      user: {
-        id: user.id,
-        username: user.username,
-        name: user.name,
-        role: user.role,
-      },
+        await logLoginEvent(user.id, 'registration', req);
+      } catch (logErr) {
+        console.error('Registration log failed (non-critical):', logErr);
+      }
+
+      res.status(201).json({
+        user: {
+          id: user.id,
+          username: user.username,
+          name: user.name,
+          role: user.role,
+        },
+      });
     });
   })
 );
@@ -73,6 +85,8 @@ async function logLoginEvent(
 }
 
 // Helper: kill all other sessions for this user (single session enforcement)
+// NOTE: This SQL depends on connect-pg-simple's JSON column format (sess->>'userId').
+// If the session store schema changes, this query will silently fail (caught by try/catch).
 async function killOtherSessions(currentSessionId: string, userId: string) {
   try {
     await prisma.$executeRaw`
@@ -127,13 +141,17 @@ router.post(
         return;
       }
 
-      // Set session data after regeneration
-      req.session.userId = user.id;
-      req.session.username = user.username;
-      req.session.role = user.role;
+      try {
+        // Set session data after regeneration
+        req.session.userId = user.id;
+        req.session.username = user.username;
+        req.session.role = user.role;
 
-      // Log the login event
-      await logLoginEvent(user.id, 'login', req);
+        // Log the login event (non-critical — don't let failure block response)
+        await logLoginEvent(user.id, 'login', req);
+      } catch (logErr) {
+        console.error('Login event log failed (non-critical):', logErr);
+      }
 
       res.json({
         user: {

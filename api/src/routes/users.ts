@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import prisma from '../db/prisma';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
 import { adminMiddleware, type AuthenticatedRequest } from '../middleware/auth';
@@ -7,12 +8,13 @@ import { createUserSchema, updateUserSchema, resetPasswordSchema } from '../vali
 
 const router = Router();
 
-// Helper: generate random temporary password
+// Helper: generate cryptographically secure temporary password
 function generateTempPassword(): string {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  const bytes = crypto.randomBytes(12);
   let result = '';
   for (let i = 0; i < 12; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
+    result += chars[bytes[i] % chars.length];
   }
   return result;
 }
@@ -168,6 +170,16 @@ router.put(
     // Prevent admin from deactivating themselves
     if (active === false && id === authReq.auth?.userId) {
       throw new AppError('Cannot deactivate your own account', 400);
+    }
+
+    // Prevent deactivating the last admin
+    if (active === false && user.role === 'admin') {
+      const adminCount = await prisma.userAccount.count({
+        where: { role: 'admin', active: true },
+      });
+      if (adminCount <= 1) {
+        throw new AppError('Cannot deactivate the last admin account', 400);
+      }
     }
 
     const updateData: Record<string, unknown> = {};

@@ -41,7 +41,13 @@ export const SampleDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: sample, isLoading, error } = useSample(id!);
+  const { data: locationSamples } = useLocationSamples(sample?.locationId || '');
   const [lightboxPhoto, setLightboxPhoto] = useState<{ src: string; alt: string } | null>(null);
+
+  // Find current sample index in location samples for prev/next navigation
+  const sampleIndex = locationSamples?.findIndex((s) => s.id === id) ?? -1;
+  const hasPrev = sampleIndex > 0;
+  const hasNext = sampleIndex >= 0 && sampleIndex < (locationSamples?.length ?? 0) - 1;
 
   const handleBack = () => {
     if (window.history.length > 1) {
@@ -85,7 +91,27 @@ export const SampleDetail = () => {
   return (
     <div className="sample-detail">
       <div className="sample-detail-header">
-        <button onClick={handleBack} className="back-link">← Back</button>
+        <div className="header-nav">
+          <button onClick={handleBack} className="back-link">← Back</button>
+          {hasPrev && (
+            <button
+              className="nav-prev-btn"
+              onClick={() => navigate(`/sample/${locationSamples![sampleIndex - 1].id}`)}
+              aria-label="Previous sample"
+            >
+              ← Prev
+            </button>
+          )}
+          {hasNext && (
+            <button
+              className="nav-next-btn"
+              onClick={() => navigate(`/sample/${locationSamples![sampleIndex + 1].id}`)}
+              aria-label="Next sample"
+            >
+              Next →
+            </button>
+          )}
+        </div>
         <div className="sample-detail-badges">
           <span className={statusClass}>{sample.status}</span>
           <QualityScoreBadge score={sample.qualityScore} size="md" />
@@ -332,6 +358,26 @@ export const SampleDetail = () => {
         .back-link {
           font-size: 0.875rem;
           color: var(--color-primary);
+        }
+        .header-nav {
+          display: flex;
+          align-items: center;
+          gap: var(--spacing-sm);
+        }
+        .nav-prev-btn,
+        .nav-next-btn {
+          font-size: 0.8rem;
+          color: var(--color-primary);
+          background: none;
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-md);
+          padding: var(--spacing-xs) var(--spacing-sm);
+          cursor: pointer;
+          transition: background var(--transition-fast);
+        }
+        .nav-prev-btn:hover,
+        .nav-next-btn:hover {
+          background: var(--color-background);
         }
 
         .sample-detail-title {

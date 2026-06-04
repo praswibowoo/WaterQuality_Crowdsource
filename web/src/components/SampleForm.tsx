@@ -238,13 +238,15 @@ export default function SampleForm() {
     }
   }, [latitude, longitude]);
 
-  // Auth check — auto-fill authorName from logged in user
+  // Auth check — auto-fill authorName from logged in user (one-time fill)
   const { isAuthenticated, user } = useAuth();
+  const didAutoFillRef = useRef(false);
   useEffect(() => {
-    if (isAuthenticated && user?.name && !formData.authorName) {
+    if (isAuthenticated && user?.name && !didAutoFillRef.current) {
+      didAutoFillRef.current = true;
       setFormData((prev) => ({ ...prev, authorName: user.name || '' }));
     }
-  }, [isAuthenticated, user, formData.authorName]);
+  }, [isAuthenticated, user]);
 
   // Warn before leaving with unsaved changes
   useEffect(() => {

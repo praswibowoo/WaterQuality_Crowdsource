@@ -63,6 +63,14 @@ function App() {
                 </RequireAuth>
               }
             />
+            <Route
+              path="/admin/debug"
+              element={
+                <RequireAuth>
+                  <SyncLogViewer />
+                </RequireAuth>
+              }
+            />
             {import.meta.env.DEV && (
               <Route path="/debug/sync" element={<SyncLogViewer />} />
             )}

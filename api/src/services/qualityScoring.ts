@@ -14,6 +14,12 @@ const MEASUREMENT_RANGES: Record<string, { min: number; max: number }> = {
 
 const MEASUREMENT_KEYS = Object.keys(MEASUREMENT_RANGES);
 
+// Validate that a parameter name is from the allowed measurement keys.
+// This prevents SQL injection if MEASUREMENT_KEYS ever includes user-controlled input.
+function isValidMeasurementKey(key: string): boolean {
+  return MEASUREMENT_KEYS.includes(key);
+}
+
 const SPATIAL_RADIUS_METERS = 500;
 const GPS_PENALTY_THRESHOLD = 100;
 const MIN_NEIGHBORS = 3;
@@ -180,6 +186,12 @@ async function scoreSpatialOutlier(
 
   if (!paramName || sampleValue == null) {
     return { score: 0.5, weight: 0.20, description: 'No measurements to compare spatially' };
+  }
+
+  // Guard: ensure paramName is from allowed measurement keys before SQL interpolation
+  if (!isValidMeasurementKey(paramName)) {
+    console.error(`Invalid measurement key: ${paramName}`);
+    return { score: 0.5, weight: 0.20, description: 'Invalid measurement parameter' };
   }
 
   try {

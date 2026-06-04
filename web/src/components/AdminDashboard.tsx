@@ -590,6 +590,13 @@ export default function AdminDashboard() {
         </form>
       </div>
 
+      {/* 🔧 Debug Sync */}
+      <div className="admin-section">
+        <Link to="/admin/debug" style={{ textDecoration: 'none', color: 'var(--color-text)' }}>
+          <h3 className="section-title">🔧 Sync Log Viewer</h3>
+        </Link>
+      </div>
+
       {/* 📋 Login History */}
       <div className="admin-section">
         <button className="section-toggle" onClick={toggleLoginHistory}>

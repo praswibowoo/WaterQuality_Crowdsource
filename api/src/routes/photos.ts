@@ -129,7 +129,8 @@ router.post(
       )
     );
 
-    // Recompute quality score since photo count changed
+    // Intentionally not awaited — non-blocking quality score update for UX responsiveness.
+    // Errors are caught internally by recalculateScore (logged as console.warn).
     recalculateScore(id);
 
     res.status(201).json(photos);

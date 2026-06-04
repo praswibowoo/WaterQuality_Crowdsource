@@ -65,7 +65,7 @@ export default function Layout({ children }: LayoutProps) {
           <Link
             key={item.path}
             to={item.path}
-            className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
+            className={`nav-item ${(item.path === '/' ? location.pathname === '/' : location.pathname === item.path || location.pathname.startsWith(item.path + '/')) ? 'active' : ''}`}
           >
             <span className="nav-icon">
               {item.icon}

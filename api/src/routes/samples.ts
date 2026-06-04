@@ -40,14 +40,33 @@ async function findOrCreateLocation(
     if (found) return found;
   }
 
-  // Create a new location with both float columns and geography column
-  const location = await prisma.location.create({
-    data: {
-      latitude: lat,
-      longitude: lng,
-      address,
-    },
-  });
+  // Create a new location with both float columns and geography column.
+  // Handle race condition: if concurrent request created the same location,
+  // the unique constraint will fail — retry by searching again.
+  let location;
+  try {
+    location = await prisma.location.create({
+      data: { latitude: lat, longitude: lng, address },
+    });
+  } catch (e: unknown) {
+    // If unique constraint violated, another request created this location — retry find
+    if ((e as { code?: string }).code === 'P2002') {
+      const retry = await prisma.$queryRaw<Array<{ id: string }>>`
+        SELECT id FROM "Location"
+        WHERE ST_DWithin(
+          geog,
+          ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
+          ${LOCATION_DEDUP_RADIUS_METERS}
+        )
+        LIMIT 1
+      `;
+      if (retry.length > 0) {
+        const found = await prisma.location.findUnique({ where: { id: retry[0].id } });
+        if (found) return found;
+      }
+    }
+    throw e;
+  }
 
   // Set geography column for PostGIS
   try {

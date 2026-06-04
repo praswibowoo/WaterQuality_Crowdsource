@@ -1,7 +1,21 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { AxiosError } from 'axios';
+
+function getPasswordStrength(pw: string): { label: string; color: string; width: string } {
+  if (!pw) return { label: '', color: 'transparent', width: '0%' };
+  let score = 0;
+  if (pw.length >= 8) score++;
+  if (pw.length >= 12) score++;
+  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
+  if (/\d/.test(pw)) score++;
+  if (/[^a-zA-Z0-9]/.test(pw)) score++;
+  if (score <= 1) return { label: 'Weak', color: '#ef4444', width: '20%' };
+  if (score <= 2) return { label: 'Fair', color: '#f59e0b', width: '40%' };
+  if (score <= 3) return { label: 'Good', color: '#3b82f6', width: '70%' };
+  return { label: 'Strong', color: '#22c55e', width: '100%' };
+}
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
@@ -12,6 +26,7 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
+  const strength = useMemo(() => getPasswordStrength(password), [password]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,6 +114,14 @@ export default function RegisterPage() {
               maxLength={128}
               autoComplete="new-password"
             />
+            {password && (
+              <div className="strength-meter">
+                <div className="strength-bar">
+                  <div className="strength-fill" style={{ width: strength.width, backgroundColor: strength.color }} />
+                </div>
+                <span className="strength-label" style={{ color: strength.color }}>{strength.label}</span>
+              </div>
+            )}
           </div>
 
           <div className="input-group">
@@ -138,6 +161,29 @@ export default function RegisterPage() {
 
         .auth-switch a {
           color: var(--color-primary);
+        }
+        .strength-meter {
+          display: flex;
+          align-items: center;
+          gap: var(--spacing-sm);
+          margin-top: var(--spacing-xs);
+        }
+        .strength-bar {
+          flex: 1;
+          height: 4px;
+          background: var(--color-border);
+          border-radius: 2px;
+          overflow: hidden;
+        }
+        .strength-fill {
+          height: 100%;
+          border-radius: 2px;
+          transition: width 0.3s ease, background-color 0.3s ease;
+        }
+        .strength-label {
+          font-size: 0.75rem;
+          font-weight: 500;
+          min-width: 40px;
         }
       `}</style>
     </div>
