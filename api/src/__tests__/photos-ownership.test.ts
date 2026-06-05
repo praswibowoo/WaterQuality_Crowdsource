@@ -53,7 +53,12 @@ jest.mock('multer', () => {
 
 jest.mock('fs', () => ({
   existsSync: jest.fn().mockReturnValue(true),
-  unlinkSync: jest.fn(),
+}));
+
+jest.mock('fs/promises', () => ({
+  __esModule: true,
+  default: { unlink: () => Promise.resolve() },
+  unlink: () => Promise.resolve(),
 }));
 
 let photosRouter: express.Router;

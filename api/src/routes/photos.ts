@@ -1,7 +1,8 @@
-import { Router, Request, Response } from 'express';
-import multer from 'multer';
+import { Router, Request, Response, NextFunction } from 'express';
+import multer, { MulterError } from 'multer';
 import path from 'path';
-import fs from 'fs';
+import fs from 'fs/promises';
+import { existsSync } from 'fs';
 import { randomUUID } from 'crypto';
 import prisma from '../db/prisma';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
@@ -62,7 +63,7 @@ router.get('/uploads/:filename', (req, res) => {
     });
   }
 
-  if (!fs.existsSync(filePath)) {
+  if (!existsSync(filePath)) {
     return res.status(404).json({
       error: 'Not Found',
       message: 'File not found',
@@ -72,11 +73,33 @@ router.get('/uploads/:filename', (req, res) => {
   res.sendFile(filePath);
 });
 
+// Multer error wrapper — ensures errors (file too large, wrong type) return JSON
+function multerHandler(req: Request, res: Response, next: NextFunction) {
+  upload.array('photos', 5)(req, res, (err) => {
+    if (err) {
+      if (err instanceof MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({ error: 'File Too Large', message: 'Each photo must be under 5MB' });
+        }
+        if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+          return res.status(400).json({ error: 'Too Many Files', message: 'Maximum 5 photos per submission' });
+        }
+        return res.status(400).json({ error: 'Upload Error', message: err.message });
+      }
+      if (err instanceof Error) {
+        return res.status(400).json({ error: 'Invalid File', message: err.message });
+      }
+      return res.status(500).json({ error: 'Upload Error', message: 'An unexpected upload error occurred' });
+    }
+    next();
+  });
+}
+
 // POST /api/v1/samples/:id/photos - Upload photo(s)
 router.post(
   '/samples/:id/photos',
   authMiddleware,
-  upload.array('photos', 5),
+  multerHandler,
   asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
 
@@ -108,9 +131,7 @@ router.post(
 
     if (existingCount + files.length > 5) {
       // Delete uploaded files since we're rejecting the request
-      for (const file of files) {
-        fs.unlinkSync(file.path);
-      }
+      await Promise.all(files.map((file) => fs.unlink(file.path).catch(() => {})));
       throw new AppError('Maximum 5 photos per sample. Cannot upload more.', 400);
     }
 
@@ -176,8 +197,8 @@ router.delete(
 
     // Delete the file from disk
     const filePath = path.join(process.cwd(), 'uploads', photo.path);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+    if (existsSync(filePath)) {
+      await fs.unlink(filePath);
     }
 
     const sampleId = photo.sampleId;
