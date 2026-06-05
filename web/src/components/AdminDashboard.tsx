@@ -99,7 +99,7 @@ export default function AdminDashboard() {
     sortOrder: 'desc' as const,
   };
 
-  const { data, isLoading, error } = useSamples(filters);
+  const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage } = useSamples(filters);
   const { data: statsData } = useSamplesStats();
   const updateSample = useUpdateSample();
   const deleteSample = useDeleteSample();
@@ -198,6 +198,7 @@ export default function AdminDashboard() {
     () => data?.pages.flatMap((page) => page.data) ?? [],
     [data]
   );
+  const totalCount = data?.pages?.[0]?.totalCount ?? 0;
 
   const stats = useMemo(() => ({
     total: statsData?.total ?? 0,
@@ -382,7 +383,7 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {samples.length === 0 ? (
+      {samples.length === 0 && !isLoading ? (
         <div className="empty-state">
           <div className="empty-icon">📋</div>
           <h3>No samples found</h3>
@@ -487,6 +488,25 @@ export default function AdminDashboard() {
               </Link>
             );
           })}
+        </div>
+      )}
+
+      {samples.length > 0 && (
+        <div className="pagination-bar">
+          <span className="pagination-info">
+            Showing {samples.length}{totalCount > samples.length ? ` of ${totalCount}` : ''} samples
+            {isFetchingNextPage && <span className="pagination-loading"> · Loading more...</span>}
+          </span>
+          {hasNextPage && (
+            <button
+              className="btn-primary"
+              onClick={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+              style={{ fontSize: '0.8rem', padding: 'var(--spacing-xs) var(--spacing-md)' }}
+            >
+              {isFetchingNextPage ? 'Loading...' : 'Load More'}
+            </button>
+          )}
         </div>
       )}
 
@@ -936,6 +956,20 @@ export default function AdminDashboard() {
           color: var(--color-text-muted);
         }
 
+        .pagination-bar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: var(--spacing-md) 0;
+          gap: var(--spacing-sm);
+        }
+        .pagination-info {
+          font-size: 0.8rem;
+          color: var(--color-text-muted);
+        }
+        .pagination-loading {
+          font-style: italic;
+        }
         .admin-loading,
         .admin-error {
           display: flex;

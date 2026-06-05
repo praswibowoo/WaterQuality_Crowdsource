@@ -196,6 +196,50 @@ export default function SampleForm() {
   const [exifWarning, setExifWarning] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Auth must be declared before draft save (used in save condition)
+  const { isAuthenticated, user } = useAuth();
+
+  // Draft save / restore
+  const DRAFT_KEY = 'sampleFormDraft';
+  const [hasDraft, setHasDraft] = useState(false);
+
+  // Restore draft on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setFormData((prev) => ({ ...prev, ...parsed }));
+        setHasDraft(true);
+      }
+    } catch {
+      // Ignore corrupt drafts
+    }
+  }, []);
+
+  // Save draft debounced on formData changes
+  const draftTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+    draftTimerRef.current = setTimeout(() => {
+      try {
+        const { ph, temperature, conductivity, salinity, nitrate, calcium, potassium, sodium, waterBodyType, landUse, gpsAccuracy, notes, address } = formData;
+        if (ph || temperature || conductivity || salinity || notes || waterBodyType || landUse) {
+          localStorage.setItem(DRAFT_KEY, JSON.stringify({ ph, temperature, conductivity, salinity, nitrate, calcium, potassium, sodium, waterBodyType, landUse, gpsAccuracy, notes, address }));
+        }
+      } catch {
+        // localStorage full or unavailable
+      }
+    }, 1000);
+    return () => { if (draftTimerRef.current) clearTimeout(draftTimerRef.current); };
+  }, [formData, isAuthenticated]);
+
+  const clearDraft = () => {
+    localStorage.removeItem(DRAFT_KEY);
+    setHasDraft(false);
+  };
+
   const { latitude, longitude, accuracy, error: geoError, isLoading: geoLoading, requestLocation, startTracking, stopTracking } = useGeolocation();
   const isOnline = useOfflineStore((s) => s.isOnline);
   const { submit: offlineSubmit } = useOfflineSubmission();
@@ -239,7 +283,6 @@ export default function SampleForm() {
   }, [latitude, longitude]);
 
   // Auth check — auto-fill authorName from logged in user (one-time fill)
-  const { isAuthenticated, user } = useAuth();
   const didAutoFillRef = useRef(false);
   useEffect(() => {
     if (isAuthenticated && user?.name && !didAutoFillRef.current) {
@@ -383,7 +426,8 @@ export default function SampleForm() {
       if (result.serverId) {
         setSubmitServerId(result.serverId);
       }
-      // Reset form
+      // Clear draft and reset form
+      clearDraft();
       setFormData({
         authorName: '',
         ph: '',
@@ -530,6 +574,13 @@ export default function SampleForm() {
           </div>
         ) : (
         <>
+
+        {hasDraft && (
+          <div className="draft-notice">
+            <span>📝 Draft restored from your last session</span>
+            <button type="button" className="draft-dismiss" onClick={clearDraft}>✕</button>
+          </div>
+        )}
 
         {offlinePhotoAlert && (
           <div className="offline-photo-alert" role="alert">
@@ -1255,6 +1306,25 @@ export default function SampleForm() {
           }
         }
 
+        .draft-notice {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          background: #e0f2fe;
+          border: 1px solid #7dd3fc;
+          border-radius: var(--radius-md);
+          padding: var(--spacing-sm) var(--spacing-md);
+          margin-bottom: var(--spacing-md);
+          font-size: 0.875rem;
+        }
+        .draft-dismiss {
+          background: none;
+          border: none;
+          font-size: 1rem;
+          cursor: pointer;
+          color: var(--color-text-muted);
+          padding: 0.25rem;
+        }
         .offline-photo-alert {
           background: #fff3cd;
           border: 1px solid #ffc107;
