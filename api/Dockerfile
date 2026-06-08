@@ -4,9 +4,8 @@ COPY package.json package-lock.json ./
 COPY api/package.json ./api/
 COPY prisma ./prisma
 RUN npm ci
-RUN npx prisma generate --schema=./prisma/schema.prisma
 COPY api/. ./api/
-RUN cd api && npx tsc
+RUN cd api && npm run build
 
 FROM node:20-alpine AS runner
 WORKDIR /app
