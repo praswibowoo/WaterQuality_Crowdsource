@@ -1,13 +1,14 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useSamples, useUpdateSample, useDeleteSample, useSamplesStats } from '../hooks/useSamples';
-import { useAuth, type LoginLogEntry } from '../contexts/AuthContext';
 import { findWaterBodyType, findLandUse } from '../utils/metadata';
 import { getKeyMeasurements, formatMeasurementValue, getMeasurementIcon, formatDate, truncateAddress } from '../utils/display';
 import { useDebounce } from '../hooks/useDebounce';
 import QualityScoreBadge from './QualityScoreBadge';
 import ConfirmDialog from './ConfirmDialog';
 import AdminUsersTab from './AdminUsersTab';
+import AdminPasswordChange from './admin/AdminPasswordChange';
+import AdminLoginHistory from './admin/AdminLoginHistory';
 
 type StatusFilter = 'all' | 'pending' | 'approved' | 'rejected';
 type QualityScoreFilter = 'all' | 'high' | 'moderate' | 'low' | 'none';
@@ -44,82 +45,12 @@ export default function AdminDashboard() {
     setActionSuccess(null);
   };
 
-  // Auth context for password change + login history
-  const { changePassword, getLoginHistory } = useAuth();
-
-  // Change password form state
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmNewPassword, setConfirmNewPassword] = useState('');
-  const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [passwordSuccess, setPasswordSuccess] = useState(false);
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
-
-  // Login history state
-  const [loginHistory, setLoginHistory] = useState<LoginLogEntry[]>([]);
-  const [showLoginHistory, setShowLoginHistory] = useState(false);
-  const [historyLoading, setHistoryLoading] = useState(false);
-
   // Clear confirm dialog when filters change
   useEffect(() => {
     setConfirmAction(null);
   }, [statusFilter, qualityScoreFilter, authorSearch]);
 
   const [activeTab, setActiveTab] = useState<'samples' | 'users'>('samples');
-
-  // Fetch login history
-  const fetchLoginHistory = useCallback(async () => {
-    setHistoryLoading(true);
-    try {
-      const logs = await getLoginHistory();
-      setLoginHistory(logs);
-    } catch {
-      console.error('Failed to fetch login history');
-    } finally {
-      setHistoryLoading(false);
-    }
-  }, [getLoginHistory]);
-
-  // Handle password change
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setPasswordError(null);
-    setPasswordSuccess(false);
-
-    if (newPassword !== confirmNewPassword) {
-      setPasswordError('New passwords do not match');
-      return;
-    }
-
-    if (newPassword.length < 8) {
-      setPasswordError('New password must be at least 8 characters');
-      return;
-    }
-
-    setIsChangingPassword(true);
-    try {
-      await changePassword(currentPassword, newPassword);
-      setPasswordSuccess(true);
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmNewPassword('');
-      // Refresh login history to show the password change event
-      fetchLoginHistory();
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { error?: string; message?: string } } };
-      setPasswordError(axiosErr?.response?.data?.message || axiosErr?.response?.data?.error || 'Failed to change password');
-    } finally {
-      setIsChangingPassword(false);
-    }
-  };
-
-  // Toggle login history visibility
-  const toggleLoginHistory = () => {
-    if (!showLoginHistory) {
-      fetchLoginHistory();
-    }
-    setShowLoginHistory(!showLoginHistory);
-  };
 
   // Flatten paginated data
   const samples = useMemo(
@@ -489,56 +420,7 @@ export default function AdminDashboard() {
       )}
 
       {/* 🔑 Change Password Section */}
-      <div className="admin-section">
-        <h3 className="section-title">🔑 Change Password</h3>
-        <form onSubmit={handleChangePassword} className="password-form">
-          <div className="input-group">
-            <label htmlFor="currentPassword">Current Password</label>
-            <input
-              type="password"
-              id="currentPassword"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              placeholder="Enter current password"
-              required
-              autoComplete="current-password"
-            />
-          </div>
-          <div className="input-group">
-            <label htmlFor="newPassword">New Password</label>
-            <input
-              type="password"
-              id="newPassword"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="Min. 8 characters"
-              required
-              minLength={8}
-              maxLength={128}
-              autoComplete="new-password"
-            />
-          </div>
-          <div className="input-group">
-            <label htmlFor="confirmNewPassword">Confirm New Password</label>
-            <input
-              type="password"
-              id="confirmNewPassword"
-              value={confirmNewPassword}
-              onChange={(e) => setConfirmNewPassword(e.target.value)}
-              placeholder="Re-enter new password"
-              required
-              minLength={8}
-              maxLength={128}
-              autoComplete="new-password"
-            />
-          </div>
-          {passwordError && <div className="form-error">{passwordError}</div>}
-          {passwordSuccess && <div className="form-success">✓ Password changed successfully</div>}
-          <button type="submit" className="btn-primary" disabled={isChangingPassword}>
-            {isChangingPassword ? 'Changing...' : 'Change Password'}
-          </button>
-        </form>
-      </div>
+      <AdminPasswordChange />
 
       {/* 🔧 Debug Sync */}
       <div className="admin-section">
@@ -548,39 +430,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* 📋 Login History */}
-      <div className="admin-section">
-        <button className="section-toggle" onClick={toggleLoginHistory}>
-          <h3 className="section-title">📋 Login History</h3>
-          <span className={`section-chevron ${showLoginHistory ? 'open' : ''}`}>▾</span>
-        </button>
-        {showLoginHistory && (
-          <div className="login-history">
-            {historyLoading ? (
-              <p className="loading-text">Loading history...</p>
-            ) : loginHistory.length === 0 ? (
-              <p className="empty-text">No login events recorded yet.</p>
-            ) : (
-              <div className="history-list">
-                {loginHistory.map((entry) => (
-                  <div key={entry.id} className={`history-entry history-${entry.action}`}>
-                    <span className="history-action">
-                      {entry.action === 'login' ? '🔑' : entry.action === 'logout' ? '🚪' : '🔒'}
-                      {' '}{entry.action === 'password_change' ? 'Password changed' : entry.action.charAt(0).toUpperCase() + entry.action.slice(1)}
-                    </span>
-                    <span className="history-meta">
-                      {entry.ipAddress || 'Unknown IP'}
-                      {entry.userAgent && ` · ${entry.userAgent.substring(0, 40)}${entry.userAgent.length > 40 ? '...' : ''}`}
-                    </span>
-                    <span className="history-time">
-                      {new Date(entry.createdAt).toLocaleString()}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+      <AdminLoginHistory />
 
       <style>{`
         .admin-dashboard {

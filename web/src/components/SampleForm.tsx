@@ -1,6 +1,5 @@
 import { useState, FormEvent, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { useFocusTrap } from '../hooks/useFocusTrap';
 import { useAuth } from '../contexts/AuthContext';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { useOfflineStore } from '../stores/offlineStore';
@@ -10,86 +9,9 @@ import MapPicker from './MapPicker';
 import { MEASUREMENT_FIELDS } from '../utils/measurements';
 import MetadataPicker from './MetadataPicker';
 import { WATER_BODY_TYPES, LAND_USE_TYPES } from '../utils/metadata';
+import { compressImage } from '../utils/imageCompression';
+import AccuracyInfoModal from './form/AccuracyInfoModal';
 
-// Photo compression — uses Web Worker when available, falls back to inline Canvas
-let compressionWorker: Worker | null = null;
-
-try {
-  compressionWorker = new Worker('/workers/image-compressor.worker.js');
-} catch {
-  // Web Worker not available, use inline compression
-}
-
-async function compressImageInWorker(file: File, maxWidth: number = 1920): Promise<File> {
-  if (!compressionWorker) {
-    return compressImageInline(file, maxWidth);
-  }
-
-  try {
-    const imageBitmap = await createImageBitmap(file);
-    const compressedBlob = await new Promise<Blob | null>((resolve) => {
-      const handler = (e: MessageEvent) => {
-        compressionWorker!.removeEventListener('message', handler);
-        if (e.data.fallback) {
-          resolve(null);
-        } else {
-          resolve(e.data.blob);
-        }
-      };
-      compressionWorker!.addEventListener('message', handler);
-      compressionWorker!.postMessage({ imageBitmap, maxWidth, format: file.type, quality: 0.85 });
-    });
-
-    imageBitmap.close();
-
-    if (compressedBlob) {
-      return new File([compressedBlob], file.name, { type: file.type });
-    }
-  } catch {
-    // Worker compression failed, fall back to inline
-  }
-
-  return compressImageInline(file, maxWidth);
-}
-
-async function compressImageInline(file: File, maxWidth: number = 1920): Promise<File> {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let { width, height } = img;
-
-        if (width > maxWidth) {
-          height = (height * maxWidth) / width;
-          width = maxWidth;
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d')!;
-        ctx.drawImage(img, 0, 0, width, height);
-
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              resolve(new File([blob], file.name, { type: file.type }));
-            } else {
-              resolve(file);
-            }
-          },
-          file.type,
-          0.85
-        );
-      };
-      img.src = e.target?.result as string;
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
-// Color-coded accuracy thresholds
 const getAccuracyColor = (accuracy: number | null): string => {
   if (accuracy === null) return 'gray';
   if (accuracy <= 10) return 'green';
@@ -103,37 +25,6 @@ const getAccuracyLabel = (accuracy: number | null): string => {
   if (accuracy <= 30) return 'Medium';
   return 'Low';
 };
-
-function AccuracyModal({ accuracy, onClose }: { accuracy: number | null; onClose: () => void }) {
-  const containerRef = useFocusTrap(true, onClose);
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div
-        ref={containerRef}
-        className="accuracy-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-label="GPS accuracy information"
-        onClick={(e) => e.stopPropagation()}
-        tabIndex={-1}
-      >
-        <h3>📍 GPS Accuracy</h3>
-        <p className="accuracy-value">
-          {getAccuracyLabel(accuracy)} ({accuracy !== null ? `${Math.round(accuracy)}m` : 'N/A'})
-        </p>
-        <p>GPS accuracy indicates how precise your location is. A smaller number means higher accuracy.</p>
-        <ul>
-          <li>🟢 ≤10m: Excellent — suitable for precise mapping</li>
-          <li>🟡 10-30m: Moderate — generally acceptable</li>
-          <li>🔴 &gt;30m: Poor — consider moving to a more open area</li>
-        </ul>
-        <button className="btn-primary" onClick={onClose}>
-          Got it
-        </button>
-      </div>
-    </div>
-  );
-}
 
 interface FormData {
   authorName: string;
@@ -408,7 +299,7 @@ export default function SampleForm() {
         try {
           const files = photos.map((p) => p.file);
           const compressedFiles = await Promise.all(
-            files.map((file) => compressImageInWorker(file))
+            files.map((file) => compressImage(file))
           );
           await samplesApi.uploadPhotos(result.serverId, compressedFiles);
         } catch (photoError) {
@@ -995,7 +886,7 @@ export default function SampleForm() {
 
       {/* GPS Accuracy Info Modal */}
       {showAccuracyInfo && (
-        <AccuracyModal
+        <AccuracyInfoModal
           accuracy={accuracy}
           onClose={() => setShowAccuracyInfo(false)}
         />
