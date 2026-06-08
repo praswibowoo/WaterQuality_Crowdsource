@@ -320,7 +320,7 @@
 
 ---
 
-## Milestone 7.5: LAQUAtwin ISE Fields (v0.7.0) ✅ Done
+## Milestone 7: LAQUAtwin ISE Fields (v0.7.0) ✅ Done
 
 **Goal**: Add LAQUAtwin ISE (Ion-Selective Electrode) parameters and remove non-LAQUAtwin fields.
 
@@ -332,7 +332,7 @@
 
 ---
 
-## Milestone 7: Metadata Tags & GPS Context (v0.8.0) ✅ Done
+## Milestone 8: Metadata Tags & GPS Context (v0.8.0) ✅ Done
 
 **Goal**: Add essential metadata context to every water sample — water body typology, surrounding land use, and GPS accuracy — so researchers understand the environmental context of each measurement.
 
@@ -354,7 +354,7 @@
 
 ---
 
-## Milestone 8: Offline-First Storage Engine (v0.9.0) ✅ Done
+## Milestone 9: Offline-First Storage Engine (v0.9.0) ✅ Done
 
 **Goal**: Replace localStorage-based offline queue with a production-grade Dexie.js IndexedDB engine. Support zero-loss guarantees, conflict detection (8m radius + same hour), auto-sync, and 30-day purge. Extensible for future data source types.
 
@@ -366,35 +366,35 @@
 - Purge synced records after 30 days; failed/dropped/duplicate retained for 90 days
 - Phase 1 (Foundation) only for initial review
 
-### Phase 1: Foundation (Current)
+### Phase 1: Foundation
 
 | Feature ID | Feature | Priority | Status |
 |------------|---------|----------|--------|
 | WQ-086 | Dexie.js database schema + dependency install | 🔴 Blocker | ✅ Done |
 | WQ-087 | Conflict detection algorithm (Haversine + hour bucket, 8m radius) | 🔴 Blocker | ✅ Done |
 
-### Phase 2: Sync Engine Core (Complete)
+### Phase 2: Sync Engine Core
 
 | Feature ID | Feature | Priority | Status |
 |------------|---------|----------|--------|
 | WQ-088 | Sync engine core (processQueue, retry backoff, auto-purge) | 🔴 Blocker | ✅ Done |
 | WQ-089 | useDexieInit hook + App entry point wiring | 🟡 High | ✅ Done |
 
-### Phase 3: Hook & Store Migration (Complete)
+### Phase 3: Hook & Store Migration
 
 | Feature ID | Feature | Priority | Status |
 |------------|---------|----------|--------|
 | WQ-090 | Zustand store rewrite + useOfflineSubmission hook | 🟡 High | ✅ Done |
 | WQ-091 | useOfflineSync rewrite + OfflineStatusBar component | 🟡 High | ✅ Done |
 
-### Phase 4: Integration & Migration (Complete)
+### Phase 4: Integration & Migration
 
 | Feature ID | Feature | Priority | Status |
 |------------|---------|----------|--------|
 | WQ-092 | localStorage to Dexie migration (gradual cutover) | 🟢 Medium | ✅ Done |
 | WQ-093 | Sync log viewer (dev-only debug route) | 🟢 Medium | ✅ Done |
 
-### Phase 5: Testing & QA (Complete)
+### Phase 5: Testing & QA
 
 | Feature ID | Feature | Priority | Status |
 |------------|---------|----------|--------|
@@ -413,7 +413,7 @@
 
 ---
 
-## Milestone 9: PostGIS Spatial Analysis & API Gateway (v1.0.0) ✅ Done
+## Milestone 10: PostGIS Spatial Analysis & API Gateway (v1.0.0) ✅ Done
 
 **Goal**: Add PostGIS spatial capabilities for accurate radius searches, formalize API Gateway structure with observability middleware, and expose spatial endpoints for frontend integration.
 
@@ -426,7 +426,7 @@
 - Swagger UI at /api/docs for API documentation
 - Spatial routes mounted BEFORE general routes to avoid /:id catch-all
 
-### Phase 1: PostGIS Foundation & API Gateway (Complete)
+### Phase 1: PostGIS Foundation & API Gateway
 
 | Feature ID | Feature | Priority | Status |
 |------------|---------|----------|--------|
@@ -435,21 +435,21 @@
 | WQ-099 | Enhanced health checks + middleware wiring | 🟡 High | ✅ Done |
 | WQ-100 | OpenAPI/Swagger documentation setup | 🟢 Medium | ✅ Done |
 
-### Phase 2: Spatial Endpoints (Complete)
+### Phase 2: Spatial Endpoints
 
 | Feature ID | Feature | Priority | Status |
 |------------|---------|----------|--------|
 | WQ-101 | /locations/nearby + /samples/nearby endpoints | 🔴 Blocker | ✅ Done |
 | WQ-102 | PostGIS location deduplication rewrite | 🔴 Blocker | ✅ Done |
 
-### Phase 3: Frontend Integration (Complete)
+### Phase 3: Frontend Integration
 
 | Feature ID | Feature | Priority | Status |
 |------------|---------|----------|--------|
 | WQ-103 | Frontend useNearbySamples hook + map integration | 🟡 High | ✅ Done |
 | WQ-104 | NearbySamplesPanel + radius slider UI | 🟡 High | ✅ Done |
 
-### Phase 4: Testing (Complete)
+### Phase 4: Testing
 
 | Feature ID | Feature | Priority | Status |
 |------------|---------|----------|--------|
@@ -467,7 +467,7 @@
 
 ---
 
-## Milestone 10: Data Quality Scoring & Spatial Interpolation (v1.1.0) ✅ Phase 1 Complete
+## Milestone 11: Data Quality Scoring & Spatial Interpolation (v1.1.0) ✅ Phase 1 Complete
 
 **Goal**: Make crowdsourced water quality data scientifically defensible through automated quality assurance, and enable spatial pattern visualization via geostatistical interpolation.
 
@@ -478,7 +478,7 @@
 - Implementation order: WQ-108 first (backend scoring), then WQ-109 (frontend heatmap) after WQ-108 is verified bug-free
 - WQ-110 deferred until sample count ≥ 200 with temporal spread across ≥ 3 seasons
 
-### Phase 1: Data Quality Scoring (Complete)
+### Phase 1: Data Quality Scoring
 
 | Feature ID | Feature | Priority | Status |
 |------------|---------|----------|--------|
@@ -531,7 +531,7 @@
 - Login history visible in AdminDashboard (LoginLog table)
 - Session invalidation uses PostgreSQL session table JSON query
 
-### Phase A: Critical Security Blockers (Complete)
+### Phase A: Critical Security Blockers
 
 | Feature ID | Feature | Priority | Status |
 |------------|---------|----------|--------|
@@ -541,7 +541,7 @@
 | WQ-114 | Seed script reads `ADMIN_PASSWORD` from env + change password endpoint + single session enforcement + login history | 🔴 Blocker | ✅ Done |
 | WQ-115 | Remove session secret fallback (fail unconditionally if missing) | 🔴 Blocker | ✅ Done |
 
-### Phase B: Authentication & Security Hardening (Complete)
+### Phase B: Authentication & Security Hardening
 
 | Feature ID | Feature | Priority | Status |
 |------------|---------|----------|--------|
@@ -556,7 +556,7 @@
 
 ---
 
-## Milestone 11: User Accounts & Data Isolation (v1.2.0) ✅ Done
+## Milestone 12: User Accounts & Data Isolation (v1.2.0) ✅ Done
 
 **Goal**: Implement user accounts with self-registration, data isolation (each user sees only their own samples), admin user management, and password reset capability.
 
@@ -623,20 +623,6 @@
 
 ---
 
-## Future: AI Analysis (v0.7.0+) 📝 Planned
-
-**Goal**: Scope and implement the AI microservice for water quality analysis.
-
-| Feature ID | Feature | Priority | Status |
-|------------|---------|----------|--------|
-| WQ-071 | AI Analysis microservice skeleton | 🟢 Medium | 📝 Planned |
-
-**Notes:**
-- WQ-063 CSP completed in v1.0.0 (PostGIS milestone)
-- WQ-071 deferred until concrete AI model/requirements defined by research team
-
----
-
 ## Hotfix v1.3.1: Critical Bug Fixes ✅ Done
 
 **Goal**: Fix 5 critical functional bugs found during post-Phase-1 audit. These bugs affect data integrity, security, and core UX.
@@ -662,7 +648,7 @@
 
 ---
 
-## Milestone 12: Code Quality & Architecture (v1.3.0) 📝 Planned
+## Milestone 13: Code Quality & Architecture (v1.3.0) 📝 Planned
 
 **Goal**: Refactor oversized components, extract shared utilities, and establish patterns for long-term maintainability.
 
@@ -703,7 +689,7 @@
 
 ---
 
-## Milestone 13: Security Hardening (v1.3.1) 📝 Planned
+## Milestone 14: Security Hardening (v1.3.1) 📝 Planned
 
 **Goal**: Close remaining security gaps. Strengthen CSP, add auth to photo serving, fix race conditions.
 
@@ -736,7 +722,7 @@
 
 ---
 
-## Milestone 14: Accessibility & UX (v1.4.0) 📝 Planned
+## Milestone 15: Accessibility & UX (v1.4.0) 📝 Planned
 
 **Goal**: Make the app accessible to all users. Meet WCAG 2.1 AA standards.
 
@@ -778,7 +764,7 @@
 
 ---
 
-## Milestone 15: Performance & Bundle Optimization (v1.4.1) 📝 Planned
+## Milestone 16: Performance & Bundle Optimization (v1.4.1) 📝 Planned
 
 **Goal**: Reduce bundle size, optimize API queries, improve field performance.
 
@@ -818,7 +804,7 @@
 
 ---
 
-## Milestone 16: Testing Coverage (v1.4.2) 📝 Planned
+## Milestone 17: Testing Coverage (v1.4.2) 📝 Planned
 
 **Goal**: Close critical testing gaps. Add E2E tests, integration tests, and component tests.
 
@@ -859,7 +845,7 @@
 
 ---
 
-## Milestone 17: DevOps & Deployment (v1.5.0) 📝 Planned
+## Milestone 18: DevOps & Deployment (v1.5.0) 📝 Planned
 
 **Goal**: Enable reproducible deployments with Docker, automated CI/CD, and production-ready configuration.
 
@@ -896,10 +882,28 @@
 
 ---
 
+## Future: AI Analysis 📝 Planned
+
+**Goal**: Scope and implement the AI microservice for water quality analysis.
+
+| Feature ID | Feature | Priority | Status |
+|------------|---------|----------|--------|
+| WQ-071 | AI Analysis microservice skeleton | 🟢 Medium | 📝 Planned |
+| WQ-109 | Spatial Interpolation Heatmap (IDW) | 🟡 High | 📝 Planned |
+| WQ-110 | ML Prediction Engine (Random Forest/XGBoost) | 🟢 Medium | 📝 Future Backlog |
+
+**Notes:**
+- WQ-063 CSP completed in v1.0.0 (PostGIS milestone)
+- WQ-071 deferred until concrete AI model/requirements defined by research team
+- WQ-110 deferred until ≥200 samples collected
+
+---
+
 ## Future Backlog 📝 Planned
 
 | Feature ID | Feature | Priority | Status |
 |------------|---------|----------|--------|
+| WQ-137 | User list pagination + sorting | 🟡 High | 📝 Planned |
 | WQ-195 | Batch approve/reject in admin | 🟡 High | 📝 Future Backlog |
 | WQ-196 | User-initiated password reset | 🟡 High | 📝 Future Backlog |
 | WQ-197 | Dark mode support | 🟢 Medium | 📝 Future Backlog |

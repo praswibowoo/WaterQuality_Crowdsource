@@ -29,8 +29,6 @@
 | WQ-006 | Offline-first localStorage sync | ✅ Done | MVP | Lead Manager | @developer | — | 2026-05-22 | Zustand store, sync queue with retry logic |
 | WQ-007 | Mobile responsive layout | ✅ Done | MVP | Lead Manager | @developer | — | 2026-05-22 | Mobile-first CSS, bottom navigation, responsive grid |
 | WQ-008 | AI analysis microservice skeleton — Future Backlog (pool of ideas) | 📝 Future Backlog | Future | — | — | — | — | Deferred from v0.2.0; will scope after v0.5.0. Pool of ideas for next milestones |
-| WQ-063 | Implement Content Security Policy | ✅ Done | v1.0.0 | Lead Manager | — | — | — | CSP with env-aware tile domains, report-only/enforce toggle, dev mode WebSocket support |
-| WQ-071 | AI Analysis microservice (full implementation) | 📝 Planned | Future v0.7.0 | — | — | — | — | Deferred until concrete AI model/requirements defined by research team |
 | WQ-009 | Persist offline store to localStorage (Zustand persist) | ✅ Done | v1.1 | Lead Manager | @developer | — | 2026-05-22 | Added persist middleware with partialize |
 | WQ-010 | Wire up useOfflineSync in App/Layout | ✅ Done | v1.1 | Lead Manager | @developer | — | 2026-05-22 | useOfflineSync called in Layout component |
 | WQ-011 | Notify users when submissions dropped | ✅ Done | v1.1 | Lead Manager | @developer | — | 2026-05-22 | console.warn when MAX_RETRIES exceeded |
@@ -84,6 +82,7 @@
 | WQ-060 | Add server-side search/filtering (authorName, dates) | ✅ Done | v0.5.0 | Lead Manager | @developer | — | 2026-05-25 | GET /samples?authorName=&dateFrom=&dateTo= |
 | WQ-061 | Migrate JWT-in-localStorage to httpOnly cookie sessions (DB-backed users) | ✅ Done | v0.6.0 | Lead Manager | @developer | — | — | express-session + connect-pg-simple + UserAccount model |
 | WQ-062 | Add rate limiting to `/auth/login` | ✅ Done | Hotfix v0.4.1 | Lead Manager | @developer | — | 2026-05-25 | Stricter limit: 5 attempts per 15min; return 429 |
+| WQ-063 | Implement Content Security Policy | ✅ Done | v1.0.0 | Lead Manager | — | — | — | CSP with env-aware tile domains, report-only/enforce toggle, dev mode WebSocket support |
 | WQ-064 | Sanitize CSV export against formula injection | ✅ Done | v0.5.0 | Lead Manager | @developer | — | 2026-05-25 | Prefix =,+,-,@,\t,\r with ' |
 | WQ-065 | Remove CORS `localhost:5173` fallback | ✅ Done | Hotfix v0.4.1 | Lead Manager | @developer | — | 2026-05-25 | If CORS_ORIGIN unset, log warning and use same-origin only |
 | WQ-066 | Move image compression to Web Worker | ✅ Done | v0.5.0 | Lead Manager | @developer | — | 2026-05-25 | OffscreenCanvas in web worker with inline fallback |
@@ -91,6 +90,7 @@
 | WQ-068 | Debounce reverse geocoding (Nominatim) | ✅ Done | v0.5.0 | Lead Manager | @developer | — | 2026-05-25 | 500ms debounce + AbortController |
 | WQ-069 | Configure global Axios timeout | ✅ Done | v0.5.0 | Lead Manager | @developer | — | 2026-05-25 | Default 10s; upload 30s; friendly error intercept |
 | WQ-070 | Optimize map marker rendering (memoization) | ✅ Done | v0.5.0 | Lead Manager | @developer | — | 2026-05-25 | React.memo on SampleMarker + MapController, useMemo for validSamples |
+| WQ-071 | AI Analysis microservice (full implementation) | 📝 Planned | Future v0.7.0 | — | — | — | — | Deferred until concrete AI model/requirements defined by research team |
 | WQ-072 | Photo support in offline mode (block with warning) | ✅ Done | v0.5.0 | Lead Manager | @developer | — | 2026-05-25 | Block submit with alert when offline + photos |
 | WQ-073 | 404 page and React Error Boundary | ✅ Done | v0.5.0 | Lead Manager | @developer | — | 2026-05-25 | ErrorBoundary + NotFoundPage + Route * |
 | WQ-074 | Admin notification badge for pending submissions | ✅ Done | v0.5.0 | Lead Manager | @developer | — | 2026-05-25 | usePendingCount with refetchInterval: 30000 |
