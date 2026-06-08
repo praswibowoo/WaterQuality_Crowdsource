@@ -4,6 +4,7 @@ import { useSamples } from '../hooks/useSamples';
 import { samplesApi } from '../api/samples';
 import { findWaterBodyType, findLandUse } from '../utils/metadata';
 import { getKeyMeasurements, formatMeasurementValueWithIcon, getStatusIcon, formatDate, truncateAddress } from '../utils/display';
+import { useDebounce } from '../hooks/useDebounce';
 import QualityScoreBadge from './QualityScoreBadge';
 
 const SORT_OPTIONS = [
@@ -21,7 +22,8 @@ const SORT_OPTIONS = [
 
 export default function SampleList() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [authorSearch, setAuthorSearch] = useState(searchParams.get('author') || '');
+  const [authorSearchInput, setAuthorSearchInput] = useState(searchParams.get('author') || '');
+  const authorSearch = useDebounce(authorSearchInput, 300);
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [dateFrom, setDateFrom] = useState(searchParams.get('from') || '');
@@ -90,7 +92,7 @@ export default function SampleList() {
   };
 
   const clearFilters = () => {
-    setAuthorSearch('');
+    setAuthorSearchInput('');
     setDateFrom('');
     setDateTo('');
     setSortBy('createdAt');
@@ -152,8 +154,8 @@ export default function SampleList() {
           <input
             type="text"
             placeholder="Search by author name..."
-            value={authorSearch}
-            onChange={(e) => setAuthorSearch(e.target.value)}
+            value={authorSearchInput}
+            onChange={(e) => setAuthorSearchInput(e.target.value)}
           />
           <div className="sort-controls">
             <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>

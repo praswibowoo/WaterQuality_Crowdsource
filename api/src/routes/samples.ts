@@ -9,6 +9,8 @@ import {
   createSampleSchema,
   updateSampleSchema,
   getSamplesQuerySchema,
+  markersQuerySchema,
+  uuidParam,
 } from '../validators/schemas';
 
 const router = Router();
@@ -18,68 +20,49 @@ const LOCATION_DEDUP_RADIUS_METERS = 10;
 
 /**
  * Find or create a location within a proximity radius using PostGIS ST_DWithin.
+ * Wrapped in a database transaction to prevent race conditions (WQ-158).
  */
 async function findOrCreateLocation(
   lat: number,
   lng: number,
   address?: string
 ) {
-  // Try to find an existing location within the radius using PostGIS
-  const existing = await prisma.$queryRaw<Array<{ id: string }>>`
-    SELECT id FROM "Location"
-    WHERE ST_DWithin(
-      geog,
-      ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
-      ${LOCATION_DEDUP_RADIUS_METERS}
-    )
-    LIMIT 1
-  `;
+  return await prisma.$transaction(async (tx) => {
+    // Try to find an existing location within the radius using PostGIS
+    const existing = await tx.$queryRaw<Array<{ id: string }>>`
+      SELECT id FROM "Location"
+      WHERE ST_DWithin(
+        geog,
+        ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
+        ${LOCATION_DEDUP_RADIUS_METERS}
+      )
+      LIMIT 1
+      FOR UPDATE
+    `;
 
-  if (existing.length > 0) {
-    const found = await prisma.location.findUnique({ where: { id: existing[0].id } });
-    if (found) return found;
-  }
+    if (existing.length > 0) {
+      const found = await tx.location.findUnique({ where: { id: existing[0].id } });
+      if (found) return found;
+    }
 
-  // Create a new location with both float columns and geography column.
-  // Handle race condition: if concurrent request created the same location,
-  // the unique constraint will fail — retry by searching again.
-  let location;
-  try {
-    location = await prisma.location.create({
+    // Create a new location within the same transaction — prevents race conditions
+    const location = await tx.location.create({
       data: { latitude: lat, longitude: lng, address },
     });
-  } catch (e: unknown) {
-    // If unique constraint violated, another request created this location — retry find
-    if ((e as { code?: string }).code === 'P2002') {
-      const retry = await prisma.$queryRaw<Array<{ id: string }>>`
-        SELECT id FROM "Location"
-        WHERE ST_DWithin(
-          geog,
-          ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
-          ${LOCATION_DEDUP_RADIUS_METERS}
-        )
-        LIMIT 1
+
+    // Set geography column for PostGIS
+    try {
+      await tx.$executeRaw`
+        UPDATE "Location"
+        SET geog = ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography
+        WHERE id = ${location.id} AND geog IS NULL
       `;
-      if (retry.length > 0) {
-        const found = await prisma.location.findUnique({ where: { id: retry[0].id } });
-        if (found) return found;
-      }
+    } catch (e) {
+      console.warn('Failed to set geography for new location:', e);
     }
-    throw e;
-  }
 
-  // Set geography column for PostGIS
-  try {
-    await prisma.$executeRaw`
-      UPDATE "Location"
-      SET geog = ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography
-      WHERE id = ${location.id} AND geog IS NULL
-    `;
-  } catch (e) {
-    console.warn('Failed to set geography for new location:', e);
-  }
-
-  return location;
+    return location;
+  });
 }
 
 // Allowed sort fields to prevent injection
@@ -99,10 +82,9 @@ router.get(
       throw queryResult.error;
     }
 
-    const { status, authorName, dateFrom, dateTo, sortBy, sortOrder, limit: zodLimit, qualityScoreFilter } = queryResult.data;
+    const { status, authorName, dateFrom, dateTo, sortBy, sortOrder, limit: zodLimit, qualityScoreFilter, cursor } = queryResult.data;
 
-    // Pagination params
-    const cursor = req.query.cursor as string | undefined;
+    // Pagination params — cursor is now validated by Zod
     const limit = Math.min(
       zodLimit || 20,
       200 // max limit
@@ -186,10 +168,9 @@ router.get(
       throw queryResult.error;
     }
 
-    const { status, sortBy, sortOrder, limit: zodLimit, qualityScoreFilter } = queryResult.data;
+    const { status, sortBy, sortOrder, limit: zodLimit, qualityScoreFilter, cursor } = queryResult.data;
 
-    // Pagination params
-    const cursor = req.query.cursor as string | undefined;
+    // Pagination params — cursor is now validated by Zod
     const limit = Math.min(
       zodLimit || 20,
       200 // max limit
@@ -256,10 +237,17 @@ router.get(
   })
 );
 
-// GET /api/v1/samples/markers - Lightweight endpoint for map markers (no pagination)
+// GET /api/v1/samples/markers - Lightweight endpoint for map markers (paginated, WQ-174)
 router.get(
   '/markers',
-  asyncHandler(async (_req: Request, res: Response) => {
+  asyncHandler(async (req: Request, res: Response) => {
+    const queryResult = markersQuerySchema.safeParse(req.query);
+    if (!queryResult.success) {
+      throw queryResult.error;
+    }
+
+    const { cursor, limit } = queryResult.data;
+
     const samples = await prisma.sample.findMany({
       select: {
         id: true,
@@ -287,9 +275,32 @@ router.get(
         },
       },
       orderBy: { createdAt: 'desc' },
+      take: limit + 1,
+      ...(cursor && {
+        cursor: { id: cursor },
+        skip: 1,
+      }),
     });
 
-    res.json(samples);
+    const hasNextPage = samples.length > limit;
+    const data = hasNextPage ? samples.slice(0, limit) : samples;
+    const nextCursor = hasNextPage && data.length > 0 ? data[data.length - 1].id : null;
+
+    res.json({ data, nextCursor });
+  })
+);
+
+// GET /api/v1/samples/stats - Get sample counts by status (WQ-173)
+router.get(
+  '/stats',
+  asyncHandler(async (_req: Request, res: Response) => {
+    const [total, pending, approved, rejected] = await Promise.all([
+      prisma.sample.count(),
+      prisma.sample.count({ where: { status: 'pending' } }),
+      prisma.sample.count({ where: { status: 'approved' } }),
+      prisma.sample.count({ where: { status: 'rejected' } }),
+    ]);
+    res.json({ total, pending, approved, rejected });
   })
 );
 
@@ -297,7 +308,11 @@ router.get(
 router.get(
   '/:id',
   asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
+    const idResult = uuidParam.safeParse(req.params.id);
+    if (!idResult.success) {
+      throw new AppError('Invalid sample ID format', 400);
+    }
+    const id = idResult.data;
 
     const sample = await prisma.sample.findUnique({
       where: { id },
@@ -383,7 +398,11 @@ router.put(
   '/:id',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
+    const idResult = uuidParam.safeParse(req.params.id);
+    if (!idResult.success) {
+      throw new AppError('Invalid sample ID format', 400);
+    }
+    const id = idResult.data;
 
     const bodyResult = updateSampleSchema.safeParse(req.body);
     if (!bodyResult.success) {
@@ -446,7 +465,11 @@ router.delete(
   '/:id',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
+    const idResult = uuidParam.safeParse(req.params.id);
+    if (!idResult.success) {
+      throw new AppError('Invalid sample ID format', 400);
+    }
+    const id = idResult.data;
 
     const existingSample = await prisma.sample.findUnique({
       where: { id },
@@ -463,21 +486,23 @@ router.delete(
       throw new AppError('Forbidden: you can only delete your own samples', 403);
     }
 
-    // Delete DB records first — files only deleted after successful DB transaction
-    await prisma.sample.delete({
-      where: { id },
-    });
+    // Atomic: DB sample delete + location cleanup in one transaction
+    await prisma.$transaction(async (tx) => {
+      // Delete the sample (Prisma cascades to photos)
+      await tx.sample.delete({
+        where: { id },
+      });
 
-    // Also delete the associated location if no other samples use it
-    await prisma.location.deleteMany({
-      where: {
-        id: existingSample.locationId,
-        samples: {
-          none: {
-            id: { not: id },
-          },
-        },
-      },
+      // Correct location cleanup: count remaining samples at this location
+      const remainingCount = await tx.sample.count({
+        where: { locationId: existingSample.locationId },
+      });
+
+      if (remainingCount === 0) {
+        await tx.location.delete({
+          where: { id: existingSample.locationId },
+        });
+      }
     });
 
     // Now delete photo files from disk (after DB is consistent)

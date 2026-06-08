@@ -40,19 +40,30 @@ export interface NeighborStats {
   stddev_val: number | null;
 }
 
+/** SQL fragments that should never appear in user-influenced whereClause inputs */
+const DANGEROUS_SQL_PATTERNS = /;\s*(DROP|DELETE|INSERT|UPDATE|ALTER|EXEC|UNION|SELECT)/i;
+
 /**
  * Query neighbor statistics (count, mean, stddev) for a measurement column.
  * Used by both spatial outlier and temporal consistency scoring.
  *
+ * IMPORTANT: `whereClause` must be a hardcoded SQL fragment. Never pass
+ * user-controlled input directly. Use parameterized placeholders ($N) for
+ * all dynamic values and pass them via the `params` array.
+ *
  * @param paramName - The measurement column name (validated against whitelist)
- * @param whereClause - SQL WHERE clause fragment (e.g., 's."locationId" = $1')
- * @param params - Parameters for the WHERE clause
+ * @param whereClause - SQL WHERE clause fragment (e.g., 's."locationId" = $2')
+ * @param params - Parameters for the WHERE clause ($1 is always sample ID)
  */
 export async function queryNeighborStats(
   paramName: string,
   whereClause: string,
   params: unknown[]
 ): Promise<NeighborStats[]> {
+  if (DANGEROUS_SQL_PATTERNS.test(whereClause)) {
+    throw new Error('Potentially dangerous SQL in whereClause rejected');
+  }
+
   const col = safeColumnName(paramName);
   const sql = `
     SELECT

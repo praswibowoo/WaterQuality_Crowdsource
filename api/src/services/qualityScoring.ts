@@ -178,8 +178,8 @@ async function scoreSpatialOutlier(
   try {
     const neighborStats = await queryNeighborStats(
       paramName,
-      `l.geog && ST_DWithin(l.geog, (SELECT geog FROM "Location" WHERE id = $2), ${SPATIAL_RADIUS_METERS})`,
-      [sampleId, locationId]
+      `l.geog && ST_DWithin(l.geog, (SELECT geog FROM "Location" WHERE id = $2), $3)`,
+      [sampleId, locationId, SPATIAL_RADIUS_METERS]
     );
 
     const result = neighborStats;
@@ -369,8 +369,9 @@ export async function calculateQualityScore(sampleId: string): Promise<QualitySc
 
 /**
  * Recalculate and persist the quality score for a sample.
+ * Retries once on failure with a 1-second delay (WQ-178).
  */
-export async function recalculateScore(sampleId: string): Promise<void> {
+export async function recalculateScore(sampleId: string, isRetry = false): Promise<void> {
   try {
     const result = await calculateQualityScore(sampleId);
     await prisma.sample.update({
@@ -378,6 +379,11 @@ export async function recalculateScore(sampleId: string): Promise<void> {
       data: { qualityScore: result.qualityScore },
     });
   } catch (err) {
-    console.warn(`Failed to recalculate quality score for sample ${sampleId}:`, err);
+    if (!isRetry) {
+      console.warn(`Quality score calculation failed for ${sampleId}, retrying in 1s:`, err);
+      await new Promise((r) => setTimeout(r, 1000));
+      return recalculateScore(sampleId, true);
+    }
+    console.error(`Quality score calculation failed for ${sampleId} after retry:`, err);
   }
 }

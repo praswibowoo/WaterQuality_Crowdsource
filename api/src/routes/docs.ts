@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 
@@ -69,16 +69,24 @@ const swaggerDefinition = {
   paths: {},
 };
 
+const isDev = process.env.NODE_ENV !== 'production';
+
 const specs = swaggerJsdoc({
   swaggerDefinition,
-  apis: ['./src/routes/*.ts'],
+  apis: [isDev ? './src/routes/*.ts' : './dist/routes/*.js'],
+});
+
+const swaggerHtml = swaggerUi.generateHTML(specs, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'Water Quality API Docs',
 });
 
 router.use('/', swaggerUi.serve);
-router.get('/', swaggerUi.setup(specs, {
-  customCss: '.swagger-ui .topbar { display: none }',
-  customSiteTitle: 'Water Quality API Docs',
-}));
+router.get('/', (_req: Request, res: Response) => {
+  const nonce = res.locals.nonce as string;
+  const html = swaggerHtml.replace(/<script /g, `<script nonce="${nonce}" `);
+  res.send(html);
+});
 
 router.get('/openapi.json', (_req, res) => {
   res.json(specs);

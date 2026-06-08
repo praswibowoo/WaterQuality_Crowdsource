@@ -63,19 +63,16 @@ export const getSamplesQuerySchema = z.object({
   qualityScoreFilter: z.enum(['high', 'moderate', 'low', 'none']).optional(),
 });
 
+export const markersQuerySchema = z.object({
+  cursor: z.string().uuid().optional(),
+  limit: z.coerce.number().min(1).max(1000).optional().default(500),
+});
+
 // Location validation schemas
 export const createLocationSchema = z.object({
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
   address: z.string().optional(),
-});
-
-export const getLocationByIdSchema = z.object({
-  id: z.string().uuid(),
-});
-
-export const getUserByIdSchema = z.object({
-  id: z.string().uuid(),
 });
 
 // Auth validation schemas
@@ -141,3 +138,6 @@ export const nearbySamplesSchema = z.object({
 
 export type NearbyLocationsInput = z.infer<typeof nearbyLocationsSchema>;
 export type NearbySamplesInput = z.infer<typeof nearbySamplesSchema>;
+
+// Reusable UUID param validator for all /:id routes
+export const uuidParam = z.string().uuid('Invalid ID format — must be a valid UUID');

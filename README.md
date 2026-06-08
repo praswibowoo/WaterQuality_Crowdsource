@@ -2,7 +2,7 @@
 
 A **Progressive Web App (PWA)** for crowdsourcing water-quality data collection at Mangrove Wonorejo, Surabaya. Field researchers and citizen scientists can submit water sample measurements, view data on an interactive map, and track trends over time — all with offline support.
 
-![Version](https://img.shields.io/badge/version-1.2.0-blue)
+![Version](https://img.shields.io/badge/version-1.5.0-blue)
 
 ---
 
@@ -408,19 +408,20 @@ water-quality-crowdsource/
 | `GET` | `/api/docs/` | Swagger UI interactive API documentation | No |
 | `GET` | `/api/docs/openapi.json` | Raw OpenAPI JSON spec | No |
 | `GET` | `/api/v1/samples` | List samples (paginated, filterable, sortable) | No |
-| `POST` | `/api/v1/samples` | Create a new sample with embedded location | No |
+| `POST` | `/api/v1/samples` | Create a new sample with embedded location | Yes (session) |
 | `GET` | `/api/v1/samples/:id` | Get a single sample with location and photos | No |
 | `PUT` | `/api/v1/samples/:id` | Update a sample | Yes (session) |
 | `DELETE` | `/api/v1/samples/:id` | Delete a sample | Yes (session) |
 | `POST` | `/api/v1/samples/:id/photos` | Upload photos (max 5 files, 5MB each) | Yes (session) |
 | `GET` | `/api/v1/samples/:id/photos` | List photos for a sample | No |
-| `GET` | `/api/v1/samples/export` | Download all samples as CSV | No |
+| `GET` | `/api/v1/samples/export` | Download all samples as CSV | Yes (session) |
 | `DELETE` | `/api/v1/photos/:id` | Delete a photo | Yes (session) |
 | `POST` | `/api/v1/auth/login` | Admin login (returns session cookie) | No |
 | `GET` | `/api/v1/auth/me` | Get current session user | Yes (session) |
 | `POST` | `/api/v1/auth/logout` | Destroy session | Yes (session) |
+| `POST` | `/api/v1/auth/register` | Register a new user account | No |
 | `GET` | `/api/v1/locations` | List all locations | No |
-| `POST` | `/api/v1/locations` | Create a location | No |
+| `POST` | `/api/v1/locations` | Create a location | Yes (session) |
 | `GET` | `/api/v1/locations/:id` | Get a location with its samples | No |
 | `GET` | `/api/v1/locations/nearby` | Radius search locations (PostGIS ST_DWithin) | No |
 | `GET` | `/api/v1/samples/nearby` | Radius search samples with distance | No |

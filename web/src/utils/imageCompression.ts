@@ -4,10 +4,14 @@
 
 let compressionWorker: Worker | null = null;
 
-try {
-  compressionWorker = new Worker('/workers/image-compressor.worker.js');
-} catch {
-  // Web Worker not available, use inline compression
+function getWorker(): Worker | null {
+  if (compressionWorker) return compressionWorker;
+  try {
+    compressionWorker = new Worker('/workers/image-compressor.worker.js');
+    return compressionWorker;
+  } catch {
+    return null;
+  }
 }
 
 async function compressImageInline(file: File, maxWidth: number = 1920): Promise<File> {
@@ -48,7 +52,8 @@ async function compressImageInline(file: File, maxWidth: number = 1920): Promise
 }
 
 export async function compressImage(file: File, maxWidth: number = 1920): Promise<File> {
-  if (!compressionWorker) {
+  const worker = getWorker();
+  if (!worker) {
     return compressImageInline(file, maxWidth);
   }
 
@@ -56,15 +61,15 @@ export async function compressImage(file: File, maxWidth: number = 1920): Promis
     const imageBitmap = await createImageBitmap(file);
     const compressedBlob = await new Promise<Blob | null>((resolve) => {
       const handler = (e: MessageEvent) => {
-        compressionWorker!.removeEventListener('message', handler);
+        worker.removeEventListener('message', handler);
         if (e.data.fallback) {
           resolve(null);
         } else {
           resolve(e.data.blob);
         }
       };
-      compressionWorker!.addEventListener('message', handler);
-      compressionWorker!.postMessage({ imageBitmap, maxWidth, format: file.type, quality: 0.85 });
+      worker.addEventListener('message', handler);
+      worker.postMessage({ imageBitmap, maxWidth, format: file.type, quality: 0.85 });
     });
 
     imageBitmap.close();

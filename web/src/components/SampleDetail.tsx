@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useState, useRef, lazy, Suspense, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { useSample, useLocationSamples } from '../hooks/useSamples';
 import { MEASUREMENT_FIELDS } from '../utils/measurements';
 import { findWaterBodyType, findLandUse } from '../utils/metadata';
-import TrendChart from './TrendChart';
 import QualityScoreBadge from './QualityScoreBadge';
 import QualityScoreBreakdown from './QualityScoreBreakdown';
 import { useFocusTrap } from '../hooks/useFocusTrap';
+
+const TrendChart = lazy(() => import('./TrendChart'));
 
 interface MeasurementDisplayProps {
   label: string;
@@ -43,6 +44,18 @@ export const SampleDetail = () => {
   const { data: sample, isLoading, error } = useSample(id!);
   const { data: locationSamples } = useLocationSamples(sample?.locationId || '');
   const [lightboxPhoto, setLightboxPhoto] = useState<{ src: string; alt: string } | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const focusRef = useRef<HTMLButtonElement | null>(null);
+
+  // Prevent body scroll when lightbox is open
+  useEffect(() => {
+    if (lightboxPhoto) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [lightboxPhoto]);
 
   // Find current sample index in location samples for prev/next navigation
   const sampleIndex = locationSamples?.findIndex((s) => s.id === id) ?? -1;
@@ -261,13 +274,25 @@ export const SampleDetail = () => {
           <div className="sample-detail-section">
             <h3>📷 Photos ({sample.photos.length})</h3>
             <div className="photo-gallery">
-              {sample.photos.map((photo) => (
+              {sample.photos.map((photo, idx) => (
                 <button
                   key={photo.id}
                   type="button"
                   className="photo-gallery-item"
-                  onClick={() => setLightboxPhoto({ src: `/api/v1/uploads/${photo.path}`, alt: photo.caption || 'Sample photo' })}
-                  aria-label={`View photo ${photo.caption || ''}`}
+                  onClick={() => {
+                    focusRef.current = (document.activeElement as HTMLButtonElement);
+                    setLightboxIndex(idx);
+                    setLightboxPhoto({ src: `/api/v1/uploads/${photo.path}`, alt: photo.caption || 'Sample photo' });
+                  }}
+                  aria-label={`View photo ${photo.caption || idx + 1}`}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      focusRef.current = (document.activeElement as HTMLButtonElement);
+                      setLightboxIndex(idx);
+                      setLightboxPhoto({ src: `/api/v1/uploads/${photo.path}`, alt: photo.caption || 'Sample photo' });
+                    }
+                  }}
                 >
                   <img
                     src={`/api/v1/uploads/${photo.path}`}
@@ -276,7 +301,10 @@ export const SampleDetail = () => {
                     width={120}
                     height={120}
                     onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
+                      const img = e.target as HTMLImageElement;
+                      img.onerror = null;
+                      img.src = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" fill="%239ca3af" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>');
+                      img.alt = 'Photo failed to load';
                     }}
                   />
                 </button>
@@ -290,7 +318,20 @@ export const SampleDetail = () => {
           <PhotoLightbox
             src={lightboxPhoto.src}
             alt={lightboxPhoto.alt}
-            onClose={() => setLightboxPhoto(null)}
+            photos={sample.photos || []}
+            currentIndex={lightboxIndex}
+            onClose={() => {
+              setLightboxPhoto(null);
+              // WQ-167: Restore focus to triggering element
+              setTimeout(() => focusRef.current?.focus(), 0);
+            }}
+            onNavigate={(newIndex) => {
+              const p = (sample.photos || [])[newIndex];
+              if (p) {
+                setLightboxIndex(newIndex);
+                setLightboxPhoto({ src: `/api/v1/uploads/${p.path}`, alt: p.caption || 'Sample photo' });
+              }
+            }}
           />
         )}
 
@@ -318,7 +359,9 @@ export const SampleDetail = () => {
         )}
 
         {/* 📊 Trends */}
-        <TrendChartWrapper sample={sample} />
+        <Suspense fallback={<div className="trend-chart-loading" style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-muted)' }}>Loading chart...</div>}>
+          <TrendChartWrapper sample={sample} />
+        </Suspense>
 
         {sample.notes && (
           <div className="sample-detail-section">
@@ -528,15 +571,20 @@ export const SampleDetail = () => {
           aspect-ratio: 1;
           border-radius: var(--radius-md);
           overflow: hidden;
-          border: none;
+          border: 2px solid transparent;
           padding: 0;
           cursor: pointer;
           background: var(--color-background);
-          transition: transform var(--transition-fast);
+          transition: transform var(--transition-fast), border-color var(--transition-fast);
         }
 
         .photo-gallery-item:hover {
           transform: scale(1.05);
+        }
+
+        .photo-gallery-item:focus-visible {
+          outline: 3px solid var(--color-primary);
+          outline-offset: 2px;
         }
 
         .photo-gallery-item img {
@@ -581,6 +629,33 @@ export const SampleDetail = () => {
           justify-content: center;
         }
 
+        .lightbox-nav {
+          position: absolute;
+          top: 50%;
+          transform: translateY(-50%);
+          background: rgba(255, 255, 255, 0.2);
+          border: none;
+          color: white;
+          font-size: 3rem;
+          cursor: pointer;
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1;
+        }
+
+        .lightbox-prev { left: var(--spacing-md); }
+        .lightbox-next { right: var(--spacing-md); }
+
+        .lightbox-nav:focus-visible,
+        .lightbox-close:focus-visible {
+          outline: 2px solid white;
+          outline-offset: 2px;
+        }
+
         /* Location Map */
         .sample-detail-map {
           border-radius: var(--radius-md);
@@ -592,12 +667,38 @@ export const SampleDetail = () => {
   );
 };
 
-function PhotoLightbox({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
+function PhotoLightbox({ src, alt, photos, currentIndex, onClose, onNavigate }: {
+  src: string;
+  alt: string;
+  photos: { path: string; caption?: string | null; id: string }[];
+  currentIndex: number;
+  onClose: () => void;
+  onNavigate: (idx: number) => void;
+}) {
   const containerRef = useFocusTrap(true, onClose);
+  const hasPrev = currentIndex > 0;
+  const hasNext = currentIndex < photos.length - 1;
+
   return (
-    <div className="lightbox-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="Photo viewer">
+    <div
+      className="lightbox-overlay"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Photo viewer"
+      onKeyDown={(e) => {
+        if (e.key === 'ArrowLeft' && hasPrev) onNavigate(currentIndex - 1);
+        if (e.key === 'ArrowRight' && hasNext) onNavigate(currentIndex + 1);
+      }}
+    >
       <div ref={containerRef} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
+        {hasPrev && (
+          <button className="lightbox-nav lightbox-prev" onClick={() => onNavigate(currentIndex - 1)} aria-label="Previous photo">‹</button>
+        )}
         <img src={src} alt={alt} className="lightbox-img" />
+        {hasNext && (
+          <button className="lightbox-nav lightbox-next" onClick={() => onNavigate(currentIndex + 1)} aria-label="Next photo">›</button>
+        )}
         <button className="lightbox-close" onClick={onClose} aria-label="Close photo">✕</button>
       </div>
     </div>

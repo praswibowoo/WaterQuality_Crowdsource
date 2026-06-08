@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
 import { sendSuccess } from '../middleware/responseEnvelope';
 import { calculateQualityScore } from '../services/qualityScoring';
+import { uuidParam } from '../validators/schemas';
 
 const router = Router();
 
@@ -9,7 +10,11 @@ const router = Router();
 router.get(
   '/samples/:id/quality-score',
   asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
+    const idResult = uuidParam.safeParse(req.params.id);
+    if (!idResult.success) {
+      throw new AppError('Invalid sample ID format', 400);
+    }
+    const id = idResult.data;
 
     try {
       const result = await calculateQualityScore(id);
@@ -20,7 +25,11 @@ router.get(
         breakdown: result.breakdown,
       });
     } catch (err) {
-      throw new AppError('Sample not found', 404);
+      if (err instanceof Error && err.message === 'Sample not found') {
+        throw new AppError('Sample not found', 404);
+      }
+      console.error('Quality score calculation error:', err);
+      throw new AppError('Failed to compute quality score', 500);
     }
   })
 );

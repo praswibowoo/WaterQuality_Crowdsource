@@ -2,6 +2,7 @@ import { useState, FormEvent, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useGeolocation } from '../hooks/useGeolocation';
+import { useDebounce } from '../hooks/useDebounce';
 import { useOfflineStore } from '../stores/offlineStore';
 import { samplesApi } from '../api/samples';
 import { useOfflineSubmission } from '../hooks/useOfflineSubmission';
@@ -110,6 +111,16 @@ export default function SampleForm() {
 
   // Save draft debounced on formData changes
   const draftTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const successTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    };
+  }, []);
+
   useEffect(() => {
     if (!isAuthenticated) return;
     if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
@@ -144,21 +155,33 @@ export default function SampleForm() {
     return () => stopTracking();
   }, [startTracking, stopTracking]);
 
-  // Sync formData when geolocation updates + reverse geocode address
-  const geocodedRef = useRef<string>('');
+  // Sync GPS accuracy from geolocation to form data
   useEffect(() => {
-    if (latitude && longitude) {
+    if (accuracy != null) {
       setFormData((prev) => ({
         ...prev,
-        latitude: prev.latitude || latitude.toString(),
-        longitude: prev.longitude || longitude.toString(),
+        gpsAccuracy: prev.gpsAccuracy || accuracy.toString(),
+      }));
+    }
+  }, [accuracy]);
+
+  // Sync formData when geolocation updates + reverse geocode address (debounced, WQ-176)
+  const debouncedLat = useDebounce(latitude, 500);
+  const debouncedLng = useDebounce(longitude, 500);
+  const geocodedRef = useRef<string>('');
+  useEffect(() => {
+    if (debouncedLat && debouncedLng) {
+      setFormData((prev) => ({
+        ...prev,
+        latitude: prev.latitude || debouncedLat.toString(),
+        longitude: prev.longitude || debouncedLng.toString(),
       }));
       // Auto-fill address from GPS position (only once per coordinates)
-      const coordsKey = `${latitude},${longitude}`;
+      const coordsKey = `${debouncedLat},${debouncedLng}`;
       if (geocodedRef.current !== coordsKey) {
         geocodedRef.current = coordsKey;
         const controller = new AbortController();
-        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`, {
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${debouncedLat}&lon=${debouncedLng}`, {
           signal: controller.signal,
         })
           .then((r) => r.json())
@@ -167,11 +190,11 @@ export default function SampleForm() {
               setFormData((prev) => ({ ...prev, address: prev.address || data.display_name }));
             }
           })
-          .catch(() => {});
+          .catch((err) => { if (err?.name !== 'AbortError') console.warn('Geocoding failed:', err); });
         return () => controller.abort();
       }
     }
-  }, [latitude, longitude]);
+  }, [debouncedLat, debouncedLng]);
 
   // Auth check — auto-fill authorName from logged in user (one-time fill)
   const didAutoFillRef = useRef(false);
@@ -339,8 +362,11 @@ export default function SampleForm() {
       });
       setPhotos([]);
       setExifWarning(false);
+      // Revoke all object URLs to prevent memory leak (BUG-008)
+      photos.forEach((p) => URL.revokeObjectURL(p.preview));
+
       // Clear success message after 8 seconds
-      setTimeout(() => {
+      successTimerRef.current = setTimeout(() => {
         setSubmitSuccess(false);
         setSubmitServerId(null);
       }, 8000);
@@ -446,6 +472,14 @@ export default function SampleForm() {
     }
   }, [photos.length]);
 
+  // Cleanup object URLs on unmount to prevent memory leak
+  useEffect(() => {
+    return () => {
+      photos.forEach((p) => URL.revokeObjectURL(p.preview));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <div className="sample-form-container">
       <div className="card">
@@ -515,7 +549,7 @@ export default function SampleForm() {
         )}
 
         {submitError && (
-          <div className="error-banner">
+          <div className="error-banner" role="alert">
             {submitError}
           </div>
         )}
@@ -570,7 +604,7 @@ export default function SampleForm() {
             )}
 
             {geoError && (
-              <div className="geo-error">{geoError}</div>
+              <div className="geo-error" role="alert">{geoError}</div>
             )}
 
             <MapPicker
@@ -820,6 +854,7 @@ export default function SampleForm() {
                         className="photo-remove-btn"
                         onClick={() => removePhoto(index)}
                         disabled={isSubmitting}
+                        aria-label="Remove photo"
                       >
                         ×
                       </button>
@@ -844,7 +879,7 @@ export default function SampleForm() {
               </div>
             )}
             {photoError && (
-              <div className="photo-error">
+              <div className="photo-error" role="alert">
                 {photoError}
               </div>
             )}

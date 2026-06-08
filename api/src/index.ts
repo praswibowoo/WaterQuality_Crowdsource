@@ -18,12 +18,24 @@ import spatialRouter from './routes/spatial';
 import qualityRouter from './routes/quality';
 import usersRouter from './routes/users';
 import { requestLogger } from './middleware/requestLogger';
-import { cspMiddleware } from './middleware/csp';
+import helmet from 'helmet';
+import { cspMiddleware, nonceMiddleware } from './middleware/csp';
 import { migrateLocationsToPostGIS } from './scripts/migratePostGIS';
+import addSessionIndex from './scripts/addSessionIndex';
+import prisma from './db/prisma';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 
 // Load environment variables
 dotenv.config();
+
+// Fail-fast startup validation for required env vars (WQ-193)
+const REQUIRED_ENV_VARS = ['DATABASE_URL', 'SESSION_SECRET', 'ADMIN_PASSWORD'];
+for (const varName of REQUIRED_ENV_VARS) {
+  if (!process.env[varName]) {
+    console.error(`FATAL: Environment variable ${varName} is required.`);
+    process.exit(1);
+  }
+}
 
 const app: Express = express();
 const PORT = process.env.PORT || 3001;
@@ -34,8 +46,12 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Trust proxy — required for correct IP detection behind reverse proxy (affects rate limiting)
-app.set('trust proxy', 1);
+// Trust proxy — required for correct IP behind reverse proxy (rate limiting, logs)
+// Set TRUST_PROXY=true only when deploying behind nginx/Cloudflare/AWS ALB
+const trustProxyEnabled = process.env.TRUST_PROXY === 'true';
+if (trustProxyEnabled) {
+  app.set('trust proxy', 1);
+}
 
 // CORS configuration - fail-closed if env var missing
 const corsOrigin = process.env.CORS_ORIGIN;
@@ -47,10 +63,22 @@ const corsOptions: cors.CorsOptions = {
   origin: corsOrigin || false, // false = same-origin only
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-request-id'],
 };
 
-// Security headers with CSP
+// Nonce generation for CSP
+app.use(nonceMiddleware);
+
+// Full security headers: HSTS, X-Frame-Options, X-Content-Type-Options, etc.
+// CSP is handled separately below with nonce support for Swagger UI
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+  })
+);
+
+// Security headers with CSP (includes nonce-based script-src)
 app.use(cspMiddleware());
 
 // CORS configuration
@@ -90,8 +118,31 @@ app.use(
 );
 
 if (process.env.NODE_ENV !== 'production') {
-  console.warn('WARNING: Running in development mode. Session cookies are not secure (secure=false).');
+  console.log('INFO: Running in development mode. Session cookies are not secure (secure=false).');
 }
+
+// Request timeout middleware (WQ-194)
+const requestTimeout = (ms: number) => {
+  return (_req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const timer = setTimeout(() => {
+      if (!res.headersSent) {
+        res.status(408).json({
+            error: 'Request Timeout',
+            message: `Request exceeded ${ms}ms timeout`,
+          });
+      }
+    }, ms);
+    res.on('finish', () => clearTimeout(timer));
+    next();
+  };
+};
+
+// Apply timeout: 30s default (general must come BEFORE route-specific timeouts)
+app.use(requestTimeout(30000));
+
+// Spatial route-specific timeouts override the general 30s with 60s
+app.use('/api/v1/locations/nearby', requestTimeout(60000));
+app.use('/api/v1/samples/nearby', requestTimeout(60000));
 
 // Request body size limits
 app.use(express.json({ limit: '1mb' }));
@@ -107,7 +158,7 @@ app.use('/health', healthRouter);
 app.use('/api/docs', docsRouter);
 
 // General API rate limiter: configurable via RATE_LIMIT_MAX env var (default: 300)
-const rateLimitMax = parseInt(process.env.RATE_LIMIT_MAX || '300', 10);
+const rateLimitMax = Math.max(1, parseInt(process.env.RATE_LIMIT_MAX || '300', 10) || 300);
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: rateLimitMax,
@@ -152,6 +203,10 @@ app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/', generalLimiter);
 
 // Spatial (PostGIS) routes — must come BEFORE locations/samples to avoid /:id catch-all
+// NOTE: Response format inconsistency exists.
+// spatial.ts and quality.ts use responseEnvelope middleware → { success, data } format.
+// All other routes return plain JSON directly (e.g., samples, auth, users, photos, export).
+// Future migration: apply responseEnvelope consistently across all routes.
 app.use('/api/v1', spatialRouter);
 
 // Quality score route - must come before samples due to /:id catch-all
@@ -174,6 +229,24 @@ app.use(errorHandler);
 // Migration on startup
 migrateLocationsToPostGIS().catch((e) => {
   console.warn('PostGIS location migration failed (non-fatal):', e.message);
+});
+
+// Create session userId index for efficient killOtherSessions queries
+addSessionIndex().catch((e) => {
+  console.warn('Session index creation failed (non-fatal):', e.message);
+});
+
+// Graceful shutdown — close Prisma connections
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM received. Shutting down gracefully...');
+  await prisma.$disconnect();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('SIGINT received. Shutting down gracefully...');
+  await prisma.$disconnect();
+  process.exit(0);
 });
 
 app.listen(PORT, () => {
