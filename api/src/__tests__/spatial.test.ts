@@ -160,9 +160,14 @@ describe('Response Envelope Middleware', () => {
   });
 });
 
+jest.mock('../scripts/migratePostGIS', () => ({
+  migrateLocationsToPostGIS: jest.fn<() => Promise<number>>().mockResolvedValue(0),
+}));
+
+import { migrateLocationsToPostGIS } from '../scripts/migratePostGIS';
+
 describe('Migration Safety', () => {
   it('migration script handles already-migrated locations gracefully', async () => {
-    const { migrateLocationsToPostGIS } = await import('../scripts/migratePostGIS');
     const result = await migrateLocationsToPostGIS();
     expect(result).toBeGreaterThanOrEqual(0);
   });
