@@ -463,17 +463,7 @@ router.delete(
       throw new AppError('Forbidden: you can only delete your own samples', 403);
     }
 
-    // Delete photo files from disk
-    for (const photo of existingSample.photos) {
-      const filePath = path.join(process.cwd(), 'uploads', photo.path);
-      try {
-        await fs.access(filePath);
-        await fs.unlink(filePath);
-      } catch {
-        // File may have been deleted already; ignore
-      }
-    }
-
+    // Delete DB records first — files only deleted after successful DB transaction
     await prisma.sample.delete({
       where: { id },
     });
@@ -489,6 +479,17 @@ router.delete(
         },
       },
     });
+
+    // Now delete photo files from disk (after DB is consistent)
+    for (const photo of existingSample.photos) {
+      const filePath = path.join(process.cwd(), 'uploads', photo.path);
+      try {
+        await fs.access(filePath);
+        await fs.unlink(filePath);
+      } catch {
+        // File may have been deleted already; ignore
+      }
+    }
 
     res.status(204).send();
   })

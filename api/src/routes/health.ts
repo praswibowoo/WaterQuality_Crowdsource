@@ -27,7 +27,7 @@ router.get('/', async (_req: Request, res: Response) => {
     checks.sessions = 'not initialized';
   }
 
-  const allUp = checks.database === 'up' && checks.postgis !== 'not available';
+  const allUp = checks.database === 'up' && checks.postgis === 'up';
 
   res.status(allUp ? 200 : 503).json({
     status: allUp ? 'ok' : 'degraded',

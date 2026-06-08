@@ -637,6 +637,280 @@
 
 ---
 
+## Hotfix v1.3.1: Critical Bug Fixes ✅ Done
+
+**Goal**: Fix 5 critical functional bugs found during post-Phase-1 audit. These bugs affect data integrity, security, and core UX.
+
+| Feature ID | Feature | Priority | Status |
+|------------|---------|----------|--------|
+| WQ-141 | Fix health check returns 200 when PostGIS is down | 🔴 Blocker | ✅ Done |
+| WQ-142 | Fix delete sample deletes files before DB transaction | 🔴 Blocker | ✅ Done |
+| WQ-143 | Fix admin action buttons nested inside Link | 🔴 Blocker | ✅ Done |
+| WQ-144 | Scope draft storage to user | 🔴 Blocker | ✅ Done |
+| WQ-145 | Fix MapContainer ref in MapPicker | 🟡 High | ✅ Done |
+
+**Exit Criteria**
+| Criteria | Status |
+|----------|--------|
+| Health check returns 503 when PostGIS is down | ✅ Done |
+| File deletion happens after successful DB transaction | ✅ Done |
+| Clicking admin buttons does not trigger navigation | ✅ Done |
+| Draft storage is scoped to authenticated user | ✅ Done |
+| No dead ref code in MapPicker | ✅ Done |
+
+**Spec**: `docs/hotfix-v1.3.1-critical-bugs-spec.md`
+
+---
+
+## Milestone 12: Code Quality & Architecture (v1.3.0) 📝 Planned
+
+**Goal**: Refactor oversized components, extract shared utilities, and establish patterns for long-term maintainability.
+
+### Phase 1: Extract Shared Utilities
+
+| Feature ID | Feature | Priority | Status |
+|------------|---------|----------|--------|
+| WQ-146 | Extract shared display utilities (getKeyMeasurements, formatDate, truncateAddress) | 🟡 High | 📝 Planned |
+| WQ-147 | Extract shared useDebounce hook | 🟡 High | 📝 Planned |
+| WQ-148 | Extract photo ownership middleware | 🟢 Medium | 📝 Planned |
+| WQ-149 | Extract quality scoring SQL helper | 🟢 Medium | 📝 Planned |
+
+### Phase 2: Split Oversized Components
+
+| Feature ID | Feature | Priority | Status |
+|------------|---------|----------|--------|
+| WQ-150 | Split AdminDashboard (1213 lines) into sub-components | 🟡 High | 📝 Planned |
+| WQ-151 | Split SampleForm (1442 lines) into sub-components | 🟡 High | 📝 Planned |
+
+### Phase 3: CSS Modules Migration
+
+| Feature ID | Feature | Priority | Status |
+|------------|---------|----------|--------|
+| WQ-152 | Migrate AdminDashboard inline styles to CSS modules | 🟢 Medium | 📝 Planned |
+| WQ-153 | Migrate SampleForm inline styles to CSS modules | 🟢 Medium | 📝 Planned |
+| WQ-154 | Migrate SampleMap inline styles to CSS modules | 🟢 Medium | 📝 Planned |
+
+**Exit Criteria**
+| Criteria | Status |
+|----------|--------|
+| Shared display utilities exist in one file | 📝 Pending |
+| useDebounce hook used by AdminDashboard and MapPicker | 📝 Pending |
+| AdminDashboard < 300 lines (excluding CSS) | 📝 Pending |
+| SampleForm < 300 lines (excluding CSS) | 📝 Pending |
+| No inline `<style>` blocks in AdminDashboard, SampleForm, SampleMap | 📝 Pending |
+
+**Spec**: `docs/milestone-12-code-quality-spec.md`
+
+---
+
+## Milestone 13: Security Hardening (v1.3.1) 📝 Planned
+
+**Goal**: Close remaining security gaps. Strengthen CSP, add auth to photo serving, fix race conditions.
+
+### Phase A: CSP & Security Headers
+
+| Feature ID | Feature | Priority | Status |
+|------------|---------|----------|--------|
+| WQ-155 | Remove 'unsafe-inline' from CSP scriptSrc | 🔴 Blocker | 📝 Planned |
+| WQ-156 | Add helmet() for full security headers (HSTS, X-Frame-Options) | 🟡 High | 📝 Planned |
+
+### Phase B: Auth & Data Protection
+
+| Feature ID | Feature | Priority | Status |
+|------------|---------|----------|--------|
+| WQ-157 | Add auth to photo serving route | 🟡 High | 📝 Planned |
+| WQ-158 | Wrap location dedup in database transaction | 🟡 High | 📝 Planned |
+| WQ-159 | Add export-specific rate limiting | 🟡 High | 📝 Planned |
+| WQ-160 | Fix temp password modulo bias | 🟢 Medium | 📝 Planned |
+
+**Exit Criteria**
+| Criteria | Status |
+|----------|--------|
+| CSP header has no 'unsafe-inline' in scriptSrc | 📝 Pending |
+| Response headers include HSTS, X-Frame-Options | 📝 Pending |
+| Photo serving requires authentication | 📝 Pending |
+| Concurrent location creation produces no duplicates | 📝 Pending |
+| Export rate limited to 10 req/min | 📝 Pending |
+
+**Spec**: `docs/milestone-13-security-hardening-spec.md`
+
+---
+
+## Milestone 14: Accessibility & UX (v1.4.0) 📝 Planned
+
+**Goal**: Make the app accessible to all users. Meet WCAG 2.1 AA standards.
+
+### Phase A: Critical Accessibility Fixes
+
+| Feature ID | Feature | Priority | Status |
+|------------|---------|----------|--------|
+| WQ-161 | Add aria-label to map control buttons | 🟡 High | 📝 Planned |
+| WQ-162 | Add role="alert" to error banners | 🟡 High | 📝 Planned |
+| WQ-163 | Add aria-live to offline status bar | 🟡 High | 📝 Planned |
+
+### Phase B: Keyboard Navigation
+
+| Feature ID | Feature | Priority | Status |
+|------------|---------|----------|--------|
+| WQ-164 | Add keyboard navigation to photo gallery | 🟡 High | 📝 Planned |
+| WQ-165 | Add focus indicators to photo gallery items | 🟡 High | 📝 Planned |
+| WQ-166 | Add aria-selected to admin tab navigation | 🟡 High | 📝 Planned |
+| WQ-167 | Restore focus on lightbox close | 🟡 High | 📝 Planned |
+
+### Phase C: Screen Reader Support
+
+| Feature ID | Feature | Priority | Status |
+|------------|---------|----------|--------|
+| WQ-168 | Add accessible alternative for TrendChart | 🟢 Medium | 📝 Planned |
+| WQ-169 | Add caption/aria-label to user management table | 🟢 Medium | 📝 Planned |
+| WQ-170 | Add aria-expanded to collapsible sections | 🟢 Medium | 📝 Planned |
+
+**Exit Criteria**
+| Criteria | Status |
+|----------|--------|
+| All interactive buttons have accessible names | 📝 Pending |
+| Error banners announced by screen readers | 📝 Pending |
+| Photo gallery navigable by keyboard | 📝 Pending |
+| All interactive elements have visible focus indicators | 📝 Pending |
+| Lighthouse accessibility score ≥ 90 | 📝 Pending |
+
+**Spec**: `docs/milestone-14-accessibility-ux-spec.md`
+
+---
+
+## Milestone 15: Performance & Bundle Optimization (v1.4.1) 📝 Planned
+
+**Goal**: Reduce bundle size, optimize API queries, improve field performance.
+
+### Phase A: Bundle Optimization
+
+| Feature ID | Feature | Priority | Status |
+|------------|---------|----------|--------|
+| WQ-171 | Lazy load route components with React.lazy | 🟡 High | 📝 Planned |
+| WQ-172 | Lazy load Chart.js (dynamic import) | 🟡 High | 📝 Planned |
+
+### Phase B: API Optimization
+
+| Feature ID | Feature | Priority | Status |
+|------------|---------|----------|--------|
+| WQ-173 | Create dedicated GET /samples/stats endpoint | 🟡 High | 📝 Planned |
+| WQ-174 | Add pagination cursor to /samples/markers | 🟡 High | 📝 Planned |
+| WQ-175 | Optimize Dexie stats refresh | 🟢 Medium | 📝 Planned |
+
+### Phase C: Frontend Performance
+
+| Feature ID | Feature | Priority | Status |
+|------------|---------|----------|--------|
+| WQ-176 | Add debounce to form geocoding | 🟡 High | 📝 Planned |
+| WQ-177 | Add pagination to MySamplesPage | 🟡 High | 📝 Planned |
+| WQ-178 | Fix quality score retry on creation failure | 🟢 Medium | 📝 Planned |
+
+**Exit Criteria**
+| Criteria | Status |
+|----------|--------|
+| Initial bundle size reduced by ≥25% | 📝 Pending |
+| Chart.js not in initial bundle | 📝 Pending |
+| /samples/stats returns counts in single query | 📝 Pending |
+| Form geocoding debounced at 500ms | 📝 Pending |
+| MySamplesPage supports >100 samples | 📝 Pending |
+
+**Spec**: `docs/milestone-15-performance-spec.md`
+
+---
+
+## Milestone 16: Testing Coverage (v1.4.2) 📝 Planned
+
+**Goal**: Close critical testing gaps. Add E2E tests, integration tests, and component tests.
+
+### Phase A: E2E Tests (Playwright)
+
+| Feature ID | Feature | Priority | Status |
+|------------|---------|----------|--------|
+| WQ-179 | Set up Playwright test infrastructure | 🔴 Blocker | 📝 Planned |
+| WQ-180 | E2E: Submit water sample journey | 🔴 Blocker | 📝 Planned |
+| WQ-181 | E2E: Admin moderation journey | 🟡 High | 📝 Planned |
+
+### Phase B: API Integration Tests
+
+| Feature ID | Feature | Priority | Status |
+|------------|---------|----------|--------|
+| WQ-182 | Photo upload/serving/deletion integration tests | 🟡 High | 📝 Planned |
+| WQ-183 | Quality scoring service unit tests | 🟡 High | 📝 Planned |
+| WQ-184 | CSP middleware tests | 🟢 Medium | 📝 Planned |
+
+### Phase C: Frontend Component Tests
+
+| Feature ID | Feature | Priority | Status |
+|------------|---------|----------|--------|
+| WQ-185 | AdminUsersTab component tests | 🟢 Medium | 📝 Planned |
+| WQ-186 | TrendChart component tests | 🟢 Medium | 📝 Planned |
+| WQ-187 | useFocusTrap hook tests | 🟢 Medium | 📝 Planned |
+
+**Exit Criteria**
+| Criteria | Status |
+|----------|--------|
+| Playwright installed and configured | 📝 Pending |
+| E2E test: full submit journey passes | 📝 Pending |
+| E2E test: admin moderation journey passes | 📝 Pending |
+| Photo route integration tests cover upload/serve/delete | 📝 Pending |
+| Total test count ≥ 300 | 📝 Pending |
+
+**Spec**: `docs/milestone-16-testing-coverage-spec.md`
+
+---
+
+## Milestone 17: DevOps & Deployment (v1.5.0) 📝 Planned
+
+**Goal**: Enable reproducible deployments with Docker, automated CI/CD, and production-ready configuration.
+
+### Phase A: Docker
+
+| Feature ID | Feature | Priority | Status |
+|------------|---------|----------|--------|
+| WQ-188 | Create Dockerfile for api | 🟡 High | 📝 Planned |
+| WQ-189 | Create Dockerfile for web (multi-stage, nginx) | 🟡 High | 📝 Planned |
+| WQ-190 | Create docker-compose.yml | 🟡 High | 📝 Planned |
+
+### Phase B: CI/CD
+
+| Feature ID | Feature | Priority | Status |
+|------------|---------|----------|--------|
+| WQ-191 | GitHub Actions CI (lint + typecheck + test) | 🟡 High | 📝 Planned |
+| WQ-192 | GitHub Actions Docker build on main | 🟢 Medium | 📝 Planned |
+
+### Phase C: Production Configuration
+
+| Feature ID | Feature | Priority | Status |
+|------------|---------|----------|--------|
+| WQ-193 | Startup environment validation | 🟡 High | 📝 Planned |
+| WQ-194 | Add request timeout middleware | 🟢 Medium | 📝 Planned |
+
+**Exit Criteria**
+| Criteria | Status |
+|----------|--------|
+| docker-compose up starts full stack | 📝 Pending |
+| GitHub Actions CI runs on every push | 📝 Pending |
+| Startup validates all required env vars | 📝 Pending |
+
+**Spec**: `docs/milestone-17-devops-deployment-spec.md`
+
+---
+
+## Future Backlog 📝 Planned
+
+| Feature ID | Feature | Priority | Status |
+|------------|---------|----------|--------|
+| WQ-195 | Batch approve/reject in admin | 🟡 High | 📝 Future Backlog |
+| WQ-196 | User-initiated password reset | 🟡 High | 📝 Future Backlog |
+| WQ-197 | Dark mode support | 🟢 Medium | 📝 Future Backlog |
+| WQ-198 | Offline data export/backup | 🟢 Medium | 📝 Future Backlog |
+| WQ-199 | Sample data audit trail | 🟢 Medium | 📝 Future Backlog |
+| WQ-200 | Copy coordinates button | 🟢 Low | 📝 Future Backlog |
+| WQ-201 | Keyboard shortcut for form submit (Ctrl+Enter) | 🟢 Low | 📝 Future Backlog |
+| WQ-202 | Search on map page | 🟢 Low | 📝 Future Backlog |
+
+---
+
 ## How to Update This File
 
 - **Lead Manager**: Add new milestones and features. Move features between milestones if scope changes.

@@ -160,6 +160,68 @@
 | WQ-138 | Kill user sessions on admin password reset | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | When admin resets password, kill all sessions for that user |
 | WQ-139 | Prevent admin self-deactivation | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | Admin UI hides deactivate button for own account |
 | WQ-140 | Generate temp password on admin user creation | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | Admin creates user → system generates random password → shown once |
+| WQ-141 | Fix health check returns 200 when PostGIS is down | ✅ Done | Hotfix v1.3.1 | Lead Manager | @lead-manager | — | — | health.ts allUp logic uses !== 'not available' instead of === 'up'. Spec: docs/hotfix-v1.3.1-critical-bugs-spec.md |
+| WQ-142 | Fix delete sample deletes files before DB transaction | ✅ Done | Hotfix v1.3.1 | Lead Manager | @lead-manager | — | — | samples.ts:467 deletes files before DB ops; if DB fails, files are gone but records remain |
+| WQ-143 | Fix admin action buttons nested inside Link | ✅ Done | Hotfix v1.3.1 | Lead Manager | @lead-manager | — | — | AdminDashboard.tsx:401 buttons inside <Link> cause navigation on click |
+| WQ-144 | Scope draft storage to user | ✅ Done | Hotfix v1.3.1 | Lead Manager | @lead-manager | — | — | SampleForm.tsx:221 fixed key leaks drafts between users on shared device |
+| WQ-145 | Fix MapContainer ref in MapPicker | ✅ Done | Hotfix v1.3.1 | Lead Manager | @lead-manager | — | — | MapPicker.tsx:148 react-leaflet v4 doesn't support direct ref; dead code |
+| WQ-146 | Extract shared display utilities | 📝 Planned | v1.3.0 | Lead Manager | — | — | — | Deduplicate getKeyMeasurements, formatDate, truncateAddress across SampleList + AdminDashboard. Spec: docs/milestone-12-code-quality-spec.md |
+| WQ-147 | Extract shared useDebounce hook | 📝 Planned | v1.3.0 | Lead Manager | — | — | — | Custom debounce in AdminDashboard + MapPicker → shared hook |
+| WQ-148 | Extract photo ownership middleware | 📝 Planned | v1.3.0 | Lead Manager | — | — | — | Duplicate ownership check in photos.ts upload + delete |
+| WQ-149 | Extract quality scoring SQL helper | 📝 Planned | v1.3.0 | Lead Manager | — | — | — | 6x $queryRawUnsafe patterns → safeColumnName helper |
+| WQ-150 | Split AdminDashboard (1213 lines) into sub-components | 📝 Planned | v1.3.0 | Lead Manager | — | — | — | Extract PasswordChangeForm, LoginHistoryPanel, AdminSamplesTab. Spec: docs/milestone-12-code-quality-spec.md |
+| WQ-151 | Split SampleForm (1442 lines) into sub-components | 📝 Planned | v1.3.0 | Lead Manager | — | — | — | Extract useImageCompression, AccuracyModal, FormPhotoUpload |
+| WQ-152 | Migrate AdminDashboard inline styles to CSS modules | 📝 Planned | v1.3.0 | Lead Manager | — | — | — | Move <style> block to admin.css or CSS modules |
+| WQ-153 | Migrate SampleForm inline styles to CSS modules | 📝 Planned | v1.3.0 | Lead Manager | — | — | — | Move <style> block to form.css or CSS modules |
+| WQ-154 | Migrate SampleMap inline styles to CSS modules | 📝 Planned | v1.3.0 | Lead Manager | — | — | — | Move <style> block to map.css or CSS modules |
+| WQ-155 | Remove 'unsafe-inline' from CSP scriptSrc | 📝 Planned | v1.3.1 | Lead Manager | — | — | — | csp.ts:22 defeats XSS protection; use nonces or hashes. Spec: docs/milestone-13-security-hardening-spec.md |
+| WQ-156 | Add helmet() for full security headers | 📝 Planned | v1.3.1 | Lead Manager | — | — | — | HSTS, X-Frame-Options, X-Content-Type-Options missing |
+| WQ-157 | Add auth to photo serving route | 📝 Planned | v1.3.1 | Lead Manager | — | — | — | /uploads/:filename unauthenticated; anyone with filename can view |
+| WQ-158 | Wrap location dedup in database transaction | 📝 Planned | v1.3.1 | Lead Manager | — | — | — | findOrCreateLocation runs raw SQL outside transaction; race condition |
+| WQ-159 | Add export-specific rate limiting | 📝 Planned | v1.3.1 | Lead Manager | — | — | — | CSV export has no specific limit; 10 req/min per user |
+| WQ-160 | Fix temp password modulo bias | 📝 Planned | v1.3.1 | Lead Manager | — | — | — | users.ts:13 uses chars[bytes[i] % length]; use crypto.randomInt |
+| WQ-161 | Add aria-label to map control buttons | 📝 Planned | v1.4.0 | Lead Manager | — | — | — | 5 buttons with no accessible names. Spec: docs/milestone-14-accessibility-ux-spec.md |
+| WQ-162 | Add role="alert" to error banners | 📝 Planned | v1.4.0 | Lead Manager | — | — | — | SampleForm, LoginPage, RegisterPage error banners not announced |
+| WQ-163 | Add aria-live to offline status bar | 📝 Planned | v1.4.0 | Lead Manager | — | — | — | OfflineStatusBar.tsx not announced to screen readers |
+| WQ-164 | Add keyboard navigation to photo gallery | 📝 Planned | v1.4.0 | Lead Manager | — | — | — | ArrowLeft/Right in lightbox, Enter/Space to open |
+| WQ-165 | Add focus indicators to photo gallery items | 📝 Planned | v1.4.0 | Lead Manager | — | — | — | .photo-gallery-item has border:none, no :focus-visible |
+| WQ-166 | Add aria-selected to admin tab navigation | 📝 Planned | v1.4.0 | Lead Manager | — | — | — | Tab buttons don't indicate active state to screen readers |
+| WQ-167 | Restore focus on lightbox close | 📝 Planned | v1.4.0 | Lead Manager | — | — | — | PhotoLightbox close doesn't return focus to triggering button |
+| WQ-168 | Add accessible alternative for TrendChart | 📝 Planned | v1.4.0 | Lead Manager | — | — | — | Canvas chart has no table or aria-label fallback |
+| WQ-169 | Add caption/aria-label to user management table | 📝 Planned | v1.4.0 | Lead Manager | — | — | — | AdminUsersTab table has no caption |
+| WQ-170 | Add aria-expanded to collapsible sections | 📝 Planned | v1.4.0 | Lead Manager | — | — | — | Login history toggle lacks aria-expanded |
+| WQ-171 | Lazy load route components with React.lazy | 📝 Planned | v1.4.1 | Lead Manager | — | — | — | All routes eagerly imported; ~30-40% bundle reduction. Spec: docs/milestone-15-performance-spec.md |
+| WQ-172 | Lazy load Chart.js (dynamic import) | 📝 Planned | v1.4.1 | Lead Manager | — | — | — | chart.js ~60KB only used on SampleDetail; not in initial bundle |
+| WQ-173 | Create dedicated GET /samples/stats endpoint | 📝 Planned | v1.4.1 | Lead Manager | — | — | — | useSamplesStats fires 4 API calls; should be 1 SQL query |
+| WQ-174 | Add pagination cursor to /samples/markers | 📝 Planned | v1.4.1 | Lead Manager | — | — | — | /samples/markers returns all samples with no limit |
+| WQ-175 | Optimize Dexie stats refresh | 📝 Planned | v1.4.1 | Lead Manager | — | — | — | offlineStore.ts loads all records; use .count() per status |
+| WQ-176 | Add debounce to form geocoding | 📝 Planned | v1.4.1 | Lead Manager | — | — | — | SampleForm.tsx:269 Nominatim called on every GPS tick |
+| WQ-177 | Add pagination to MySamplesPage | 📝 Planned | v1.4.1 | Lead Manager | — | — | — | useMySamples hardcodes limit:100; no Load More |
+| WQ-178 | Fix quality score retry on creation failure | 📝 Planned | v1.4.1 | Lead Manager | — | — | — | recalculateScore called without await; failure leaves null forever |
+| WQ-179 | Set up Playwright test infrastructure | 📝 Planned | v1.4.2 | Lead Manager | — | — | — | Install @playwright/test, config, e2e/ directory. Spec: docs/milestone-16-testing-coverage-spec.md |
+| WQ-180 | E2E: Submit water sample journey | 📝 Planned | v1.4.2 | Lead Manager | — | — | — | Register → login → fill form → GPS → submit → view on map |
+| WQ-181 | E2E: Admin moderation journey | 📝 Planned | v1.4.2 | Lead Manager | — | — | — | Login as admin → view pending → approve → verify stats |
+| WQ-182 | Photo upload/serving/deletion integration tests | 📝 Planned | v1.4.2 | Lead Manager | — | — | — | 10 test cases for multer errors, auth, ownership, file cleanup |
+| WQ-183 | Quality scoring service unit tests | 📝 Planned | v1.4.2 | Lead Manager | — | — | — | Test all 6 scoring factors independently |
+| WQ-184 | CSP middleware tests | 📝 Planned | v1.4.2 | Lead Manager | — | — | — | Test CSP header generation, dev mode, tile domains |
+| WQ-185 | AdminUsersTab component tests | 📝 Planned | v1.4.2 | Lead Manager | — | — | — | User list, create modal, deactivate, reset password |
+| WQ-186 | TrendChart component tests | 📝 Planned | v1.4.2 | Lead Manager | — | — | — | Chart rendering, parameter switching, empty state |
+| WQ-187 | useFocusTrap hook tests | 📝 Planned | v1.4.2 | Lead Manager | — | — | — | Focus trapping, Escape key, focus restoration |
+| WQ-188 | Create Dockerfile for api | 📝 Planned | v1.5.0 | Lead Manager | — | — | — | Multi-stage build: builder + runner. Spec: docs/milestone-17-devops-deployment-spec.md |
+| WQ-189 | Create Dockerfile for web (multi-stage, nginx) | 📝 Planned | v1.5.0 | Lead Manager | — | — | — | Build + nginx static serving |
+| WQ-190 | Create docker-compose.yml | 📝 Planned | v1.5.0 | Lead Manager | — | — | — | api + web + PostgreSQL + PostGIS in one command |
+| WQ-191 | GitHub Actions CI (lint + typecheck + test) | 📝 Planned | v1.5.0 | Lead Manager | — | — | — | Run on every push/PR |
+| WQ-192 | GitHub Actions Docker build on main | 📝 Planned | v1.5.0 | Lead Manager | — | — | — | Build and push Docker images |
+| WQ-193 | Startup environment validation | 📝 Planned | v1.5.0 | Lead Manager | — | — | — | Validate DATABASE_URL, SESSION_SECRET, ADMIN_PASSWORD at boot |
+| WQ-194 | Add request timeout middleware | 📝 Planned | v1.5.0 | Lead Manager | — | — | — | 30s default, 60s for spatial queries |
+| WQ-195 | Batch approve/reject in admin | 📝 Future Backlog | Future | — | — | — | — | Checkbox + bulk action UI |
+| WQ-196 | User-initiated password reset | 📝 Future Backlog | Future | — | — | — | — | Instead of "Contact admin" |
+| WQ-197 | Dark mode support | 📝 Future Backlog | Future | — | — | — | — | CSS custom properties + prefers-color-scheme |
+| WQ-198 | Offline data export/backup | 📝 Future Backlog | Future | — | — | — | — | Export pending offline submissions |
+| WQ-199 | Sample data audit trail | 📝 Future Backlog | Future | — | — | — | — | Track who changed what and when |
+| WQ-200 | Copy coordinates button | 📝 Future Backlog | Future | — | — | — | — | One-click clipboard copy in SampleDetail |
+| WQ-201 | Keyboard shortcut for form submit (Ctrl+Enter) | 📝 Future Backlog | Future | — | — | — | — | Rapid field data entry |
+| WQ-202 | Search on map page | 📝 Future Backlog | Future | — | — | — | — | Search by author, parameter, or date from map view |
 
 ---
 
@@ -256,6 +318,9 @@
 | 2026-06-04 | Lead Manager | Fixed admin login + seed | — | ADMIN_PASSWORD was hex hash instead of plaintext. Fixed api/.env, added env loading to seed.ts, re-seeded database. |
 | 2026-06-04 | Lead Manager | Code cleanup + documentation cleanup | — | Updated MILESTONES.md (added v0.7.0, fixed chronology, status). Updated PROGRESS.md test counts (131/131 API). Created manual QA checklist. Committed and pushed to GitHub. |
 | 2026-06-04 | Lead Manager | Tech debt fixes (Groups 1-3) | S2, S3, B1-B4, F4-F8 | Last-admin protection, crypto temp password, SQL injection guard, atomic location dedup, prev/next navigation, forgot password link, password strength meter, SyncLogViewer admin route, dead proxy removal, documentation. |
+| 2026-06-08 | Developer | Phase 1: Bug fixes + component tests | WQ-141 to WQ-187 | Fixed multer JSON error handling (photos.ts), async fs.unlink (photos.ts); added 39 component tests (SampleDetail, SampleList, AdminDashboard, SampleMap, SampleForm); installed @testing-library/react; created test helpers/setup; all 247 tests pass (116 web + 131 api); lint/typecheck/build clean |
+| 2026-06-08 | Lead Manager | Post-Phase-1 audit + milestone planning | WQ-141 to WQ-202 | Full codebase audit: 14 bugs (5 critical, 9 high), security gaps, performance issues, accessibility gaps, testing holes. Created 7 spec docs: hotfix-v1.3.1, milestone-12 (code quality), milestone-13 (security), milestone-14 (accessibility), milestone-15 (performance), milestone-16 (testing), milestone-17 (devops). Registered 62 new features (WQ-141 to WQ-202). |
+| 2026-06-08 | Lead Manager | Implemented Hotfix v1.3.1 | WQ-141 to WQ-145 | Fixed 5 critical bugs: health check PostGIS logic (health.ts), delete file order (samples.ts), admin buttons outside Link (AdminDashboard.tsx), user-scoped draft key (SampleForm.tsx), removed dead mapRef (MapPicker.tsx). 247/247 tests pass, lint/typecheck/build clean. |
 
 ---
 
@@ -312,7 +377,7 @@ Note: User model removed in favor of anonymous crowdsourcing (authorName field)
 - `npm run lint`: ✅ Pass
 - `npm run typecheck`: ✅ Pass
 - `npm run build`: ✅ Pass
-- `npm run test`: ✅ 77/77 tests pass
+- `npm run test`: ✅ 116/116 tests pass
 
 ### Backend (api/)
 - `npm run lint`: ✅ Pass

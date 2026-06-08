@@ -398,94 +398,96 @@ export default function AdminDashboard() {
           {samples.map((sample) => {
             const keyMeasurements = getKeyMeasurements(sample);
             return (
-              <Link to={`/sample/${sample.id}`} key={sample.id} className="admin-sample-card">
-                <div className="sample-card-icon">
-                  {getSampleIcon(sample)}
-                </div>
-                <div className="sample-card-content">
-                  <div className="sample-card-header">
-                    <span className="sample-card-title">
-                      {sample.authorName}
-                    </span>
-                    <div className="admin-card-badges">
-                      <QualityScoreBadge score={sample.qualityScore} />
-                      <span className={`badge badge-${sample.status}`}>
-                        {sample.status}
+              <div key={sample.id} className="admin-sample-card">
+                <Link to={`/sample/${sample.id}`} className="sample-card-link">
+                  <div className="sample-card-icon">
+                    {getSampleIcon(sample)}
+                  </div>
+                  <div className="sample-card-content">
+                    <div className="sample-card-header">
+                      <span className="sample-card-title">
+                        {sample.authorName}
                       </span>
+                      <div className="admin-card-badges">
+                        <QualityScoreBadge score={sample.qualityScore} />
+                        <span className={`badge badge-${sample.status}`}>
+                          {sample.status}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="sample-card-meta">
+                      <span className="sample-date">
+                        {formatDate(sample.createdAt)}
+                      </span>
+                      {sample.location?.address && (
+                        <span className="sample-location">
+                          📍 {truncateAddress(sample.location.address)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="sample-card-data">
+                      {keyMeasurements.map((m) => (
+                        <span key={m.key}>{formatMeasurementValue(m.label, m.value, m.unit)}</span>
+                      ))}
+                    </div>
+                    {/* Metadata badges */}
+                    <div className="card-meta-badges">
+                      {sample.waterBodyType && findWaterBodyType(sample.waterBodyType) && (
+                        <span className="meta-badge">
+                          {findWaterBodyType(sample.waterBodyType)!.emoji} {findWaterBodyType(sample.waterBodyType)!.label}
+                        </span>
+                      )}
+                      {sample.landUse && findLandUse(sample.landUse) && (
+                        <span className="meta-badge">
+                          {findLandUse(sample.landUse)!.emoji} {findLandUse(sample.landUse)!.label}
+                        </span>
+                      )}
                     </div>
                   </div>
-                  <div className="sample-card-meta">
-                    <span className="sample-date">
-                      {formatDate(sample.createdAt)}
-                    </span>
-                    {sample.location?.address && (
-                      <span className="sample-location">
-                        📍 {truncateAddress(sample.location.address)}
-                      </span>
-                    )}
-                  </div>
-                  <div className="sample-card-data">
-                    {keyMeasurements.map((m) => (
-                      <span key={m.key}>{formatMeasurementValue(m.label, m.value, m.unit)}</span>
-                    ))}
-                  </div>
-                  {/* Metadata badges */}
-                  <div className="card-meta-badges">
-                    {sample.waterBodyType && findWaterBodyType(sample.waterBodyType) && (
-                      <span className="meta-badge">
-                        {findWaterBodyType(sample.waterBodyType)!.emoji} {findWaterBodyType(sample.waterBodyType)!.label}
-                      </span>
-                    )}
-                    {sample.landUse && findLandUse(sample.landUse) && (
-                      <span className="meta-badge">
-                        {findLandUse(sample.landUse)!.emoji} {findLandUse(sample.landUse)!.label}
-                      </span>
-                    )}
-                  </div>
-                  {/* Admin Actions */}
-                  <div className="admin-actions">
-                    {sample.status === 'pending' && (
-                      <>
-                        <button
-                          className="btn-approve"
-                          onClick={() => handleApprove(sample.id, sample.authorName)}
-                          disabled={updateSample.isPending}
-                        >
-                          ✓ Approve
-                        </button>
-                        <button
-                          className="btn-reject"
-                          onClick={() => handleReject(sample.id, sample.authorName)}
-                          disabled={updateSample.isPending}
-                        >
-                          ✗ Reject
-                        </button>
-                      </>
-                    )}
-                    {(sample.status === 'approved' || sample.status === 'rejected') && (
-                      <>
-                        <button
-                          className="btn-revert"
-                          onClick={() => handleRevert(sample.id, sample.authorName)}
-                          disabled={updateSample.isPending}
-                        >
-                          ↩ Revert to Pending
-                        </button>
-                        <button
-                          className="btn-delete"
-                          onClick={() => handleDelete(sample.id, sample.authorName)}
-                          disabled={deleteSample.isPending}
-                        >
-                          🗑 Delete
-                        </button>
-                      </>
-                    )}
-                    {sample.status === 'rejected' && (
-                      <span className="moderated-label">✗ Rejected</span>
-                    )}
-                  </div>
+                </Link>
+                {/* Admin Actions — outside Link to prevent navigation */}
+                <div className="admin-actions">
+                  {sample.status === 'pending' && (
+                    <>
+                      <button
+                        className="btn-approve"
+                        onClick={() => handleApprove(sample.id, sample.authorName)}
+                        disabled={updateSample.isPending}
+                      >
+                        ✓ Approve
+                      </button>
+                      <button
+                        className="btn-reject"
+                        onClick={() => handleReject(sample.id, sample.authorName)}
+                        disabled={updateSample.isPending}
+                      >
+                        ✗ Reject
+                      </button>
+                    </>
+                  )}
+                  {(sample.status === 'approved' || sample.status === 'rejected') && (
+                    <>
+                      <button
+                        className="btn-revert"
+                        onClick={() => handleRevert(sample.id, sample.authorName)}
+                        disabled={updateSample.isPending}
+                      >
+                        ↩ Revert to Pending
+                      </button>
+                      <button
+                        className="btn-delete"
+                        onClick={() => handleDelete(sample.id, sample.authorName)}
+                        disabled={deleteSample.isPending}
+                      >
+                        🗑 Delete
+                      </button>
+                    </>
+                  )}
+                  {sample.status === 'rejected' && (
+                    <span className="moderated-label">✗ Rejected</span>
+                  )}
                 </div>
-              </Link>
+              </div>
             );
           })}
         </div>
@@ -787,17 +789,23 @@ export default function AdminDashboard() {
 
         .admin-sample-card {
           display: flex;
-          gap: var(--spacing-md);
+          flex-direction: column;
+          gap: var(--spacing-sm);
           padding: var(--spacing-md);
           background-color: var(--color-surface);
           border-radius: var(--radius-lg);
           box-shadow: var(--shadow-sm);
-          text-decoration: none;
-          color: inherit;
           transition: box-shadow var(--transition-fast);
         }
         .admin-sample-card:hover {
           box-shadow: var(--shadow-md);
+        }
+
+        .sample-card-link {
+          display: flex;
+          gap: var(--spacing-md);
+          text-decoration: none;
+          color: inherit;
         }
 
         .sample-card-icon {

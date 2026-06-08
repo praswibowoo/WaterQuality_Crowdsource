@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
-import type { Map as LeafletMap } from 'leaflet';
 import { defaultIcon } from './MarkerIcon';
 
 interface MapPickerProps {
@@ -88,7 +87,6 @@ export default function MapPicker({
   );
   const [address, setAddress] = useState<string>('');
   const [isLoadingAddress, setIsLoadingAddress] = useState(false);
-  const mapRef = useRef<LeafletMap | null>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -149,7 +147,6 @@ export default function MapPicker({
           center={selectedPosition || [0, 0]}
           zoom={selectedPosition ? zoom : 2}
           style={{ height: '100%', width: '100%' }}
-          ref={mapRef}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

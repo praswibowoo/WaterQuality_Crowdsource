@@ -199,14 +199,14 @@ export default function SampleForm() {
   // Auth must be declared before draft save (used in save condition)
   const { isAuthenticated, user } = useAuth();
 
-  // Draft save / restore
-  const DRAFT_KEY = 'sampleFormDraft';
+  // Draft save / restore — scoped to authenticated user
+  const draftKey = `sampleFormDraft-${user?.id || 'anonymous'}`;
   const [hasDraft, setHasDraft] = useState(false);
 
   // Restore draft on mount
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(DRAFT_KEY);
+      const saved = localStorage.getItem(draftKey);
       if (saved) {
         const parsed = JSON.parse(saved);
         setFormData((prev) => ({ ...prev, ...parsed }));
@@ -215,7 +215,7 @@ export default function SampleForm() {
     } catch {
       // Ignore corrupt drafts
     }
-  }, []);
+  }, [draftKey]);
 
   // Save draft debounced on formData changes
   const draftTimerRef = useRef<ReturnType<typeof setTimeout>>();
@@ -226,17 +226,17 @@ export default function SampleForm() {
       try {
         const { ph, temperature, conductivity, salinity, nitrate, calcium, potassium, sodium, waterBodyType, landUse, gpsAccuracy, notes, address } = formData;
         if (ph || temperature || conductivity || salinity || notes || waterBodyType || landUse) {
-          localStorage.setItem(DRAFT_KEY, JSON.stringify({ ph, temperature, conductivity, salinity, nitrate, calcium, potassium, sodium, waterBodyType, landUse, gpsAccuracy, notes, address }));
+          localStorage.setItem(draftKey, JSON.stringify({ ph, temperature, conductivity, salinity, nitrate, calcium, potassium, sodium, waterBodyType, landUse, gpsAccuracy, notes, address }));
         }
       } catch {
         // localStorage full or unavailable
       }
     }, 1000);
     return () => { if (draftTimerRef.current) clearTimeout(draftTimerRef.current); };
-  }, [formData, isAuthenticated]);
+  }, [formData, isAuthenticated, draftKey]);
 
   const clearDraft = () => {
-    localStorage.removeItem(DRAFT_KEY);
+    localStorage.removeItem(draftKey);
     setHasDraft(false);
   };
 
