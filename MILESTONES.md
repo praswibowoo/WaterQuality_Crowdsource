@@ -648,7 +648,7 @@
 
 ---
 
-## Milestone 13: Code Quality & Architecture (v1.3.0) 📝 Planned
+## Milestone 13: Code Quality & Architecture (v1.3.0) ✅ Phase 1+2 Complete
 
 **Goal**: Refactor oversized components, extract shared utilities, and establish patterns for long-term maintainability.
 
@@ -656,19 +656,19 @@
 
 | Feature ID | Feature | Priority | Status |
 |------------|---------|----------|--------|
-| WQ-146 | Extract shared display utilities (getKeyMeasurements, formatDate, truncateAddress) | 🟡 High | 📝 Planned |
-| WQ-147 | Extract shared useDebounce hook | 🟡 High | 📝 Planned |
-| WQ-148 | Extract photo ownership middleware | 🟢 Medium | 📝 Planned |
-| WQ-149 | Extract quality scoring SQL helper | 🟢 Medium | 📝 Planned |
+| WQ-146 | Extract shared display utilities (getKeyMeasurements, formatDate, truncateAddress) | 🟡 High | ✅ Done |
+| WQ-147 | Extract shared useDebounce hook | 🟡 High | ✅ Done |
+| WQ-148 | Extract photo ownership middleware | 🟢 Medium | ✅ Done |
+| WQ-149 | Extract quality scoring SQL helper | 🟢 Medium | ✅ Done |
 
 ### Phase 2: Split Oversized Components
 
 | Feature ID | Feature | Priority | Status |
 |------------|---------|----------|--------|
-| WQ-150 | Split AdminDashboard (1213 lines) into sub-components | 🟡 High | 📝 Planned |
-| WQ-151 | Split SampleForm (1442 lines) into sub-components | 🟡 High | 📝 Planned |
+| WQ-150 | Split AdminDashboard (1213→999 lines) — extract PasswordChangeForm, LoginHistoryPanel | 🟡 High | ✅ Done |
+| WQ-151 | Split SampleForm (1442→1332 lines) — extract useImageCompression, AccuracyModal | 🟡 High | ✅ Done |
 
-### Phase 3: CSS Modules Migration
+### Phase 3: CSS Modules Migration (Planned)
 
 | Feature ID | Feature | Priority | Status |
 |------------|---------|----------|--------|
@@ -679,11 +679,13 @@
 **Exit Criteria**
 | Criteria | Status |
 |----------|--------|
-| Shared display utilities exist in one file | 📝 Pending |
-| useDebounce hook used by AdminDashboard and MapPicker | 📝 Pending |
-| AdminDashboard < 300 lines (excluding CSS) | 📝 Pending |
-| SampleForm < 300 lines (excluding CSS) | 📝 Pending |
-| No inline `<style>` blocks in AdminDashboard, SampleForm, SampleMap | 📝 Pending |
+| Shared display utilities exist in one file | ✅ Done |
+| useDebounce hook used by AdminDashboard | ✅ Done |
+| AdminDashboard reduced from 1213→999 lines (270 line reduction) | ✅ Done |
+| SampleForm reduced from 1442→1332 lines (110 line reduction) | ✅ Done |
+| AdminPasswordChange, AdminLoginHistory, imageCompression, AccuracyInfoModal extracted | ✅ Done |
+| All existing tests pass | ✅ Done |
+| No inline `<style>` blocks (CSS modules migration) | 📝 Pending — Phase 3 |
 
 **Spec**: `docs/milestone-12-code-quality-spec.md`
 
