@@ -2,59 +2,9 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useSamples } from '../hooks/useSamples';
 import { samplesApi } from '../api/samples';
-import { MEASUREMENT_FIELDS, MEASUREMENT_PRIORITY } from '../utils/measurements';
 import { findWaterBodyType, findLandUse } from '../utils/metadata';
-import { Sample } from '../types';
+import { getKeyMeasurements, formatMeasurementValueWithIcon, getStatusIcon, formatDate, truncateAddress } from '../utils/display';
 import QualityScoreBadge from './QualityScoreBadge';
-
-type MeasurementPriorityKey = typeof MEASUREMENT_PRIORITY[number];
-
-interface KeyMeasurementData {
-  key: MeasurementPriorityKey;
-  value: number;
-  unit: string;
-  label: string;
-}
-
-function getKeyMeasurements(sample: Sample): KeyMeasurementData[] {
-  const measurements: KeyMeasurementData[] = [];
-  for (const key of MEASUREMENT_PRIORITY) {
-    if (sample[key] != null) {
-      const field = MEASUREMENT_FIELDS[key];
-      measurements.push({
-        key,
-        value: sample[key] as number,
-        unit: field.unit,
-        label: field.label,
-      });
-      if (measurements.length >= 3) break;
-    }
-  }
-  return measurements;
-}
-
-function formatMeasurementValue(key: MeasurementPriorityKey, value: number, unit: string, label: string): string {
-  const icons: Record<MeasurementPriorityKey, string> = {
-    ph: '🌊', conductivity: '⚡', salinity: '🧂',
-    nitrate: '🔬', calcium: '🔬', potassium: '🔬', sodium: '🔬',
-    temperature: '🌡️',
-  };
-  return unit ? `${icons[key]} ${label}: ${value} ${unit}` : `${icons[key]} ${label}: ${value}`;
-}
-
-function getSampleIcon(sample: Sample): string {
-  const icons: Record<string, string> = { approved: '✅', rejected: '❌', pending: '⏳' };
-  return icons[sample.status] || '📋';
-}
-
-function formatDate(date: Date | string): string {
-  const d = new Date(date);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
-function truncateAddress(address: string): string {
-  return address.length > 30 ? address.substring(0, 30) + '...' : address;
-}
 
 const SORT_OPTIONS = [
   { value: 'createdAt', label: 'Date' },
@@ -279,7 +229,7 @@ export default function SampleList() {
                       <QualityScoreBadge score={sample.qualityScore} />
                     )}
                     <span className={`status-badge status-${sample.status}`}>
-                      {getSampleIcon(sample)} {sample.status}
+                      {getStatusIcon(sample.status)} {sample.status}
                     </span>
                   </div>
                 </div>
@@ -289,7 +239,7 @@ export default function SampleList() {
                 {measurements.length > 0 && (
                   <div className="card-measurements">
                     {measurements.map((m) => (
-                      <span key={m.key}>{formatMeasurementValue(m.key, m.value, m.unit, m.label)}</span>
+                      <span key={m.key}>{formatMeasurementValueWithIcon(m.key, m.value, m.unit, m.label)}</span>
                     ))}
                   </div>
                 )}

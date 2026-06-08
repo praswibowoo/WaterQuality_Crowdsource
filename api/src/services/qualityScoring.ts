@@ -1,24 +1,5 @@
 import prisma from '../db/prisma';
-
-// Measurement validation ranges (mirrors web/src/utils/measurements.ts)
-const MEASUREMENT_RANGES: Record<string, { min: number; max: number }> = {
-  ph: { min: 0, max: 14 },
-  temperature: { min: -100, max: 100 },
-  conductivity: { min: 0, max: 199900 },
-  salinity: { min: 0, max: 100 },
-  nitrate: { min: 0, max: 6200 },
-  calcium: { min: 0, max: 4000 },
-  potassium: { min: 0, max: 2000 },
-  sodium: { min: 0, max: 2000 },
-};
-
-const MEASUREMENT_KEYS = Object.keys(MEASUREMENT_RANGES);
-
-// Validate that a parameter name is from the allowed measurement keys.
-// This prevents SQL injection if MEASUREMENT_KEYS ever includes user-controlled input.
-function isValidMeasurementKey(key: string): boolean {
-  return MEASUREMENT_KEYS.includes(key);
-}
+import { MEASUREMENT_RANGES, MEASUREMENT_KEYS, isValidMeasurementKey, queryNeighborStats } from './sqlHelpers';
 
 const SPATIAL_RADIUS_METERS = 500;
 const GPS_PENALTY_THRESHOLD = 100;
@@ -195,26 +176,13 @@ async function scoreSpatialOutlier(
   }
 
   try {
-    const result = await prisma.$queryRaw<Array<{
-      cnt: bigint;
-      mean_val: number | null;
-      stddev_val: number | null;
-    }>>`
-      SELECT
-        COUNT(*) as cnt,
-        AVG(s.${prisma.$queryRawUnsafe(`"${paramName}"`)}::float) as mean_val,
-        COALESCE(STDDEV(s.${prisma.$queryRawUnsafe(`"${paramName}"`)}::float), 0) as stddev_val
-      FROM "Sample" s
-      JOIN "Location" l ON s."locationId" = l.id
-      WHERE ST_DWithin(
-        l.geog,
-        (SELECT geog FROM "Location" WHERE id = ${locationId}),
-        ${SPATIAL_RADIUS_METERS}
-      )
-      AND s.id != ${sampleId}
-      AND s.status = 'approved'
-      AND s.${prisma.$queryRawUnsafe(`"${paramName}"`)} IS NOT NULL
-    `;
+    const neighborStats = await queryNeighborStats(
+      paramName,
+      `l.geog && ST_DWithin(l.geog, (SELECT geog FROM "Location" WHERE id = $2), ${SPATIAL_RADIUS_METERS})`,
+      [sampleId, locationId]
+    );
+
+    const result = neighborStats;
 
     const cnt = Number(result[0]?.cnt || 0);
     const meanVal = result[0]?.mean_val;
@@ -282,21 +250,13 @@ async function scoreTemporalConsistency(
 
     try {
       // Step 1: Try same location
-      let result = await prisma.$queryRaw<Array<{
-        cnt: bigint;
-        mean_val: number | null;
-        stddev_val: number | null;
-      }>>`
-        SELECT
-          COUNT(*) as cnt,
-          AVG(s.${prisma.$queryRawUnsafe(`"${paramName}"`)}::float) as mean_val,
-          COALESCE(STDDEV(s.${prisma.$queryRawUnsafe(`"${paramName}"`)}::float), 0) as stddev_val
-        FROM "Sample" s
-        WHERE s."locationId" = ${locationId}
-          AND s.id != ${sampleId}
-          AND s.status = 'approved'
-          AND s.${prisma.$queryRawUnsafe(`"${paramName}"`)} IS NOT NULL
-      `;
+      let neighborStats = await queryNeighborStats(
+        paramName,
+        `s."locationId" = $2`,
+        [sampleId, locationId]
+      );
+
+      let result = neighborStats;
 
       let cnt = Number(result[0]?.cnt || 0);
       let meanVal = result[0]?.mean_val;
@@ -304,21 +264,12 @@ async function scoreTemporalConsistency(
 
       // Step 2: Fallback to same waterBodyType if <3 samples
       if (cnt < MIN_HISTORICAL_SAMPLES && waterBodyType) {
-        result = await prisma.$queryRaw<Array<{
-          cnt: bigint;
-          mean_val: number | null;
-          stddev_val: number | null;
-        }>>`
-          SELECT
-            COUNT(*) as cnt,
-            AVG(s.${prisma.$queryRawUnsafe(`"${paramName}"`)}::float) as mean_val,
-            COALESCE(STDDEV(s.${prisma.$queryRawUnsafe(`"${paramName}"`)}::float), 0) as stddev_val
-          FROM "Sample" s
-          WHERE s."waterBodyType" = ${waterBodyType}
-            AND s.id != ${sampleId}
-            AND s.status = 'approved'
-            AND s.${prisma.$queryRawUnsafe(`"${paramName}"`)} IS NOT NULL
-        `;
+        neighborStats = await queryNeighborStats(
+          paramName,
+          `s."waterBodyType" = $2`,
+          [sampleId, waterBodyType]
+        );
+        result = neighborStats;
         cnt = Number(result[0]?.cnt || 0);
         meanVal = result[0]?.mean_val;
         stddevVal = result[0]?.stddev_val;

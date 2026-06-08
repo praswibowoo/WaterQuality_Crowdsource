@@ -6,7 +6,8 @@ import { existsSync } from 'fs';
 import { randomUUID } from 'crypto';
 import prisma from '../db/prisma';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
-import { authMiddleware, type AuthenticatedRequest } from '../middleware/auth';
+import { authMiddleware } from '../middleware/auth';
+import { requireOwnershipOrAdmin } from '../middleware/photoOwnership';
 import { recalculateScore } from '../services/qualityScoring';
 
 const router = Router();
@@ -113,10 +114,7 @@ router.post(
     }
 
     // Ownership check (C2): only the sample owner or admin can upload photos
-    const currentUser = (req as AuthenticatedRequest).auth!;
-    if (sample.userId !== currentUser.userId && currentUser.role !== 'admin') {
-      throw new AppError('Forbidden: you can only add photos to your own samples', 403);
-    }
+    requireOwnershipOrAdmin(sample.userId, req, 'Forbidden: you can only add photos to your own samples');
 
     const files = req.files as Express.Multer.File[] || [];
 
@@ -190,10 +188,7 @@ router.delete(
     }
 
     // Ownership check (C2): only the sample owner or admin can delete photos
-    const currentUser = (req as AuthenticatedRequest).auth!;
-    if (photo.sample.userId !== currentUser.userId && currentUser.role !== 'admin') {
-      throw new AppError('Forbidden: you can only delete photos from your own samples', 403);
-    }
+    requireOwnershipOrAdmin(photo.sample.userId, req, 'Forbidden: you can only delete photos from your own samples');
 
     // Delete the file from disk
     const filePath = path.join(process.cwd(), 'uploads', photo.path);

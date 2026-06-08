@@ -2,76 +2,12 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useSamples, useUpdateSample, useDeleteSample, useSamplesStats } from '../hooks/useSamples';
 import { useAuth, type LoginLogEntry } from '../contexts/AuthContext';
-import { MEASUREMENT_FIELDS, MEASUREMENT_PRIORITY } from '../utils/measurements';
 import { findWaterBodyType, findLandUse } from '../utils/metadata';
+import { getKeyMeasurements, formatMeasurementValue, getMeasurementIcon, formatDate, truncateAddress } from '../utils/display';
+import { useDebounce } from '../hooks/useDebounce';
 import QualityScoreBadge from './QualityScoreBadge';
 import ConfirmDialog from './ConfirmDialog';
 import AdminUsersTab from './AdminUsersTab';
-
-type MeasurementPriorityKey = typeof MEASUREMENT_PRIORITY[number];
-
-interface KeyMeasurementData {
-  key: MeasurementPriorityKey;
-  value: number;
-  unit: string;
-  label: string;
-}
-
-function getKeyMeasurements(sample: {
-  ph?: number | null;
-  conductivity?: number | null;
-  salinity?: number | null;
-  nitrate?: number | null;
-  calcium?: number | null;
-  potassium?: number | null;
-  sodium?: number | null;
-  temperature?: number | null;
-}): KeyMeasurementData[] {
-  const measurements: KeyMeasurementData[] = [];
-
-  for (const key of MEASUREMENT_PRIORITY) {
-    if (sample[key] != null) {
-      const field = MEASUREMENT_FIELDS[key];
-      measurements.push({
-        key,
-        value: sample[key] as number,
-        unit: field.unit,
-        label: field.label,
-      });
-      if (measurements.length >= 3) break;
-    }
-  }
-
-  return measurements;
-}
-
-function formatMeasurementValue(label: string, value: number, unit: string): string {
-  if (unit) {
-    return `${label}: ${value} ${unit}`;
-  }
-  return `${label}: ${value}`;
-}
-
-function getSampleIcon(sample: {
-  ph?: number | null;
-  conductivity?: number | null;
-  salinity?: number | null;
-  nitrate?: number | null;
-  calcium?: number | null;
-  potassium?: number | null;
-  sodium?: number | null;
-  temperature?: number | null;
-}): string {
-  if (sample.ph !== null && sample.ph !== undefined) return '💧';
-  if (sample.conductivity !== null && sample.conductivity !== undefined) return '⚡';
-  if (sample.salinity !== null && sample.salinity !== undefined) return '🧂';
-  if (sample.nitrate !== null && sample.nitrate !== undefined) return '🔬';
-  if (sample.calcium !== null && sample.calcium !== undefined) return '🔬';
-  if (sample.potassium !== null && sample.potassium !== undefined) return '🔬';
-  if (sample.sodium !== null && sample.sodium !== undefined) return '🔬';
-  if (sample.temperature !== null && sample.temperature !== undefined) return '🌡️';
-  return '📋';
-}
 
 type StatusFilter = 'all' | 'pending' | 'approved' | 'rejected';
 type QualityScoreFilter = 'all' | 'high' | 'moderate' | 'low' | 'none';
@@ -80,15 +16,7 @@ export default function AdminDashboard() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [qualityScoreFilter, setQualityScoreFilter] = useState<QualityScoreFilter>('all');
   const [authorSearchInput, setAuthorSearchInput] = useState('');
-  const [authorSearch, setAuthorSearch] = useState('');
-
-  // M6: Debounce author search by 300ms
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setAuthorSearch(authorSearchInput.trim());
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [authorSearchInput]);
+  const authorSearch = useDebounce(authorSearchInput.trim(), 300);
 
   // Server-side filtering: pass status, qualityScore, and authorName to API
   const filters = {
@@ -401,7 +329,7 @@ export default function AdminDashboard() {
               <div key={sample.id} className="admin-sample-card">
                 <Link to={`/sample/${sample.id}`} className="sample-card-link">
                   <div className="sample-card-icon">
-                    {getSampleIcon(sample)}
+                    {getMeasurementIcon(sample)}
                   </div>
                   <div className="sample-card-content">
                     <div className="sample-card-header">
@@ -1218,20 +1146,4 @@ export default function AdminDashboard() {
       `}</style>
     </div>
   );
-}
-
-function formatDate(date: Date | string): string {
-  const d = new Date(date);
-  return d.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
-
-function truncateAddress(address: string): string {
-  if (address.length > 30) {
-    return address.substring(0, 30) + '...';
-  }
-  return address;
 }
