@@ -144,8 +144,8 @@ export default function MapPicker({
     <div className="map-picker-container">
       <div className="map-container">
         <MapContainer
-          center={selectedPosition || [0, 0]}
-          zoom={selectedPosition ? zoom : 2}
+          center={selectedPosition || initialPosition || [parseFloat(import.meta.env.VITE_DEFAULT_LAT || '-7.3059612'), parseFloat(import.meta.env.VITE_DEFAULT_LNG || '112.8443053')]}
+          zoom={selectedPosition ? zoom : 10}
           style={{ height: '100%', width: '100%' }}
         >
           <TileLayer

@@ -9,6 +9,7 @@ import { asyncHandler, AppError } from '../middleware/errorHandler';
 import { authMiddleware } from '../middleware/auth';
 import { requireOwnershipOrAdmin } from '../middleware/photoOwnership';
 import { recalculateScore } from '../services/qualityScoring';
+import { uuidParam } from '../validators/schemas';
 
 const router = Router();
 
@@ -38,8 +39,8 @@ const upload = multer({
   },
 });
 
-// Serve uploaded files statically (with path traversal protection)
-router.get('/uploads/:filename', (req, res) => {
+// Serve uploaded files statically (with path traversal protection + auth required)
+router.get('/uploads/:filename', authMiddleware, (req, res) => {
   const { filename } = req.params;
 
   // Reject path separators or traversal attempts
@@ -102,7 +103,11 @@ router.post(
   authMiddleware,
   multerHandler,
   asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
+    const idResult = uuidParam.safeParse(req.params.id);
+    if (!idResult.success) {
+      throw new AppError('Invalid sample ID format', 400);
+    }
+    const id = idResult.data;
 
     // Check if sample exists
     const sample = await prisma.sample.findUnique({
@@ -122,31 +127,38 @@ router.post(
       throw new AppError('No files uploaded', 400);
     }
 
-    // Check total photo count for this sample
-    const existingCount = await prisma.photo.count({
-      where: { sampleId: id },
-    });
+    // Check total photo count + create records atomically in a transaction
+    // Prevents race condition where concurrent uploads could bypass the 5-photo limit
+    let photos: Record<string, unknown>[];
+    try {
+      photos = await prisma.$transaction(async (tx) => {
+        const existingCount = await tx.photo.count({
+          where: { sampleId: id },
+        });
 
-    if (existingCount + files.length > 5) {
-      // Delete uploaded files since we're rejecting the request
+        if (existingCount + files.length > 5) {
+          throw new AppError('Maximum 5 photos per sample. Cannot upload more.', 400);
+        }
+
+        return Promise.all(
+          files.map((file) =>
+            tx.photo.create({
+              data: {
+                filename: file.originalname,
+                path: file.filename,
+                mimeType: file.mimetype,
+                size: file.size,
+                sampleId: id,
+              },
+            })
+          )
+        );
+      });
+    } catch (dbError) {
+      // Clean up uploaded files since DB operation failed
       await Promise.all(files.map((file) => fs.unlink(file.path).catch(() => {})));
-      throw new AppError('Maximum 5 photos per sample. Cannot upload more.', 400);
+      throw dbError;
     }
-
-    // Create photo records
-    const photos = await Promise.all(
-      files.map((file) =>
-        prisma.photo.create({
-          data: {
-            filename: file.originalname,
-            path: file.filename,
-            mimeType: file.mimetype,
-            size: file.size,
-            sampleId: id,
-          },
-        })
-      )
-    );
 
     // Intentionally not awaited — non-blocking quality score update for UX responsiveness.
     // Errors are caught internally by recalculateScore (logged as console.warn).
@@ -160,7 +172,11 @@ router.post(
 router.get(
   '/samples/:id/photos',
   asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
+    const idResult = uuidParam.safeParse(req.params.id);
+    if (!idResult.success) {
+      throw new AppError('Invalid sample ID format', 400);
+    }
+    const id = idResult.data;
 
     const photos = await prisma.photo.findMany({
       where: { sampleId: id },
@@ -176,7 +192,11 @@ router.delete(
   '/photos/:id',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
+    const idResult = uuidParam.safeParse(req.params.id);
+    if (!idResult.success) {
+      throw new AppError('Invalid photo ID format', 400);
+    }
+    const id = idResult.data;
 
     const photo = await prisma.photo.findUnique({
       where: { id },
@@ -190,18 +210,18 @@ router.delete(
     // Ownership check (C2): only the sample owner or admin can delete photos
     requireOwnershipOrAdmin(photo.sample.userId, req, 'Forbidden: you can only delete photos from your own samples');
 
-    // Delete the file from disk
-    const filePath = path.join(process.cwd(), 'uploads', photo.path);
-    if (existsSync(filePath)) {
-      await fs.unlink(filePath);
-    }
-
     const sampleId = photo.sampleId;
+    const filePath = path.join(process.cwd(), 'uploads', photo.path);
 
-    // Delete the database record
+    // Delete the database record FIRST (WQ-142 pattern) — only delete file after DB succeeds
     await prisma.photo.delete({
       where: { id },
     });
+
+    // Now delete the file from disk (after DB is consistent)
+    if (existsSync(filePath)) {
+      await fs.unlink(filePath);
+    }
 
     // Recompute quality score since photo count changed
     recalculateScore(sampleId);

@@ -145,6 +145,86 @@ describe('Quality Scoring Engine', () => {
       expect(result.breakdown.temporalConsistency.score).toBe(0.5);
     });
 
+    it('scores GPS accuracy factor correctly for high accuracy', async () => {
+      mockFindUnique.mockResolvedValue({
+        id: 'sample-gps', authorName: 'Test', locationId: 'loc-1',
+        ph: null, temperature: null, conductivity: null, salinity: null,
+        nitrate: null, calcium: null, potassium: null, sodium: null,
+        waterBodyType: 'river', landUse: 'urban', gpsAccuracy: 5, notes: 'Test',
+        status: 'pending', qualityScore: null,
+        createdAt: new Date(), updatedAt: new Date(),
+        location: { id: 'loc-1', latitude: -7.3, longitude: 112.8, geog: null, address: null, createdAt: new Date() },
+        photos: [],
+      });
+      const result = await calculateQualityScore('sample-gps');
+      expect(result.breakdown.gpsAccuracy.score).toBeCloseTo(0.95, 2);
+      expect(result.breakdown.gpsAccuracy.rawValue).toBe('5m');
+    });
+
+    it('scores range validity factor correctly — out of range values', async () => {
+      mockFindUnique.mockResolvedValue({
+        id: 'sample-range', authorName: 'Test', locationId: 'loc-1',
+        ph: 14.5, temperature: 110, conductivity: 500000, salinity: 150,
+        nitrate: null, calcium: null, potassium: null, sodium: null,
+        waterBodyType: 'river', landUse: 'urban', gpsAccuracy: 10, notes: null,
+        status: 'pending', qualityScore: null,
+        createdAt: new Date(), updatedAt: new Date(),
+        location: { id: 'loc-1', latitude: -7.3, longitude: 112.8, geog: null, address: null, createdAt: new Date() },
+        photos: [],
+      });
+      const result = await calculateQualityScore('sample-range');
+      expect(result.breakdown.rangeValidity.score).toBe(0);
+      expect(result.breakdown.rangeValidity.rawValue).toBe('0/4 in range');
+    });
+
+    it('scores metadata completeness — partial metadata', async () => {
+      mockFindUnique.mockResolvedValue({
+        id: 'sample-meta', authorName: 'Test', locationId: 'loc-1',
+        ph: null, temperature: null, conductivity: null, salinity: null,
+        nitrate: null, calcium: null, potassium: null, sodium: null,
+        waterBodyType: 'river', landUse: '', gpsAccuracy: null, notes: null,
+        status: 'pending', qualityScore: null,
+        createdAt: new Date(), updatedAt: new Date(),
+        location: { id: 'loc-1', latitude: -7.3, longitude: 112.8, geog: null, address: null, createdAt: new Date() },
+        photos: [],
+      });
+      const result = await calculateQualityScore('sample-meta');
+      expect(result.breakdown.metadataCompleteness.score).toBe(0.25);
+      expect(result.breakdown.metadataCompleteness.rawValue).toBe('1/4');
+    });
+
+    it('scores photo presence — no photos', async () => {
+      mockFindUnique.mockResolvedValue({
+        id: 'sample-photo', authorName: 'Test', locationId: 'loc-1',
+        ph: 7.0, temperature: null, conductivity: null, salinity: null,
+        nitrate: null, calcium: null, potassium: null, sodium: null,
+        waterBodyType: 'river', landUse: 'urban', gpsAccuracy: 10, notes: 'Test',
+        status: 'pending', qualityScore: null,
+        createdAt: new Date(), updatedAt: new Date(),
+        location: { id: 'loc-1', latitude: -7.3, longitude: 112.8, geog: null, address: null, createdAt: new Date() },
+        photos: [],
+      });
+      const result = await calculateQualityScore('sample-photo');
+      expect(result.breakdown.photoPresence.score).toBe(0);
+      expect(result.breakdown.photoPresence.rawValue).toBe(0);
+    });
+
+    it('scores photo presence — has photos', async () => {
+      mockFindUnique.mockResolvedValue({
+        id: 'sample-photo2', authorName: 'Test', locationId: 'loc-1',
+        ph: 7.0, temperature: null, conductivity: null, salinity: null,
+        nitrate: null, calcium: null, potassium: null, sodium: null,
+        waterBodyType: 'river', landUse: 'urban', gpsAccuracy: 10, notes: 'Test',
+        status: 'pending', qualityScore: null,
+        createdAt: new Date(), updatedAt: new Date(),
+        location: { id: 'loc-1', latitude: -7.3, longitude: 112.8, geog: null, address: null, createdAt: new Date() },
+        photos: [{ id: 'photo-1' }, { id: 'photo-2' }],
+      });
+      const result = await calculateQualityScore('sample-photo2');
+      expect(result.breakdown.photoPresence.score).toBe(1);
+      expect(result.breakdown.photoPresence.rawValue).toBe(2);
+    });
+
     it('produces consistent scores for varying GPS accuracy', async () => {
       const scores: number[] = [];
 

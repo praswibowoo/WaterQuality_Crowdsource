@@ -5,6 +5,7 @@ import type {
   UpdateSampleInput,
   Photo,
   PaginatedResponse,
+  SamplesStatsResponse,
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
@@ -132,8 +133,15 @@ export const samplesApi = {
     await apiClient.delete(`/photos/${photoId}`);
   },
 
-  async getMapMarkers(): Promise<SampleMapMarker[]> {
-    const response = await apiClient.get<SampleMapMarker[]>('/samples/markers');
+  async getStats(): Promise<SamplesStatsResponse> {
+    const response = await apiClient.get<SamplesStatsResponse>('/samples/stats');
+    return response.data;
+  },
+
+  async getMapMarkers(cursor?: string): Promise<{ data: SampleMapMarker[]; nextCursor: string | null }> {
+    const params: Record<string, string> = {};
+    if (cursor) params.cursor = cursor;
+    const response = await apiClient.get<{ data: SampleMapMarker[]; nextCursor: string | null }>('/samples/markers', { params });
     return response.data;
   },
 

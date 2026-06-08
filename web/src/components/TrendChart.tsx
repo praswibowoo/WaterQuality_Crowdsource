@@ -184,7 +184,7 @@ export default function TrendChart({ samples, locationId }: TrendChartProps) {
         </select>
       </div>
 
-      <div className="trend-chart-container">
+      <div className="trend-chart-container" aria-label={`Trend chart showing ${fieldConfig.label} over time with ${chartData.samples.length} data points`}>
         <Line data={data} options={options} />
       </div>
 

@@ -47,7 +47,7 @@ export function useNearbySamples(): UseNearbySamplesReturn {
       const { data: response } = await axios.get(`${API_BASE}/samples/nearby`, {
         params: { latitude: lat, longitude: lng, radiusMeters: radius, limit: 50 },
       });
-      setSamples(response?.data?.samples || []);
+      setSamples(response?.data?.data?.samples || []);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { error?: { message?: string } } }; message?: string };
       setError(axiosErr?.response?.data?.error?.message || 'Failed to search nearby samples');

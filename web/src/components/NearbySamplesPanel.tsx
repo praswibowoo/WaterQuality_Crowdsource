@@ -94,11 +94,12 @@ export default function NearbySamplesPanel({ userLocation, onClose }: NearbySamp
             onClick={() => userLocation && search(userLocation[0], userLocation[1])}
             disabled={isLoading || !userLocation}
             title="Refresh results"
+            aria-label="Refresh nearby samples"
           >
             ↻
           </button>
           {onClose && (
-            <button className="nearby-close-btn" onClick={onClose}>✕</button>
+            <button className="nearby-close-btn" onClick={onClose} aria-label="Close nearby panel">✕</button>
           )}
         </div>
       </div>
@@ -118,7 +119,7 @@ export default function NearbySamplesPanel({ userLocation, onClose }: NearbySamp
         </div>
       </div>
 
-      {error && <div className="nearby-error">{error}</div>}
+      {error && <div className="nearby-error" role="alert">{error}</div>}
 
       {isLoading && <div className="nearby-status">Searching for nearby samples...</div>}
 

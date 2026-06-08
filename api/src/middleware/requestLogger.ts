@@ -10,7 +10,7 @@ export function requestLogger(req: Request, res: Response, next: NextFunction): 
 
   res.on('finish', () => {
     const duration = Date.now() - start;
-    const logEntry = {
+    const logEntry: Record<string, unknown> = {
       requestId,
       method: req.method,
       path: req.originalUrl,
@@ -19,6 +19,11 @@ export function requestLogger(req: Request, res: Response, next: NextFunction): 
       userAgent: req.headers['user-agent'] || 'unknown',
       timestamp: new Date().toISOString(),
     };
+
+    // Include authenticated userId for audit traceability
+    if (req.session?.userId) {
+      logEntry.userId = req.session.userId;
+    }
 
     if (res.statusCode >= 500) {
       console.error(JSON.stringify(logEntry));

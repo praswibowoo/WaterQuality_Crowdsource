@@ -1,13 +1,15 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../db/prisma';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
-import { createLocationSchema } from '../validators/schemas';
+import { authMiddleware } from '../middleware/auth';
+import { createLocationSchema, uuidParam } from '../validators/schemas';
 
 const router = Router();
 
-// POST /api/v1/locations - Create new location
+// POST /api/v1/locations - Create new location (auth required — SEC-001)
 router.post(
   '/',
+  authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
     const bodyResult = createLocationSchema.safeParse(req.body);
     if (!bodyResult.success) {
@@ -23,6 +25,17 @@ router.post(
         address,
       },
     });
+
+    // Set geography column for PostGIS spatial queries
+    try {
+      await prisma.$executeRaw`
+        UPDATE "Location"
+        SET geog = ST_SetSRID(ST_MakePoint(${longitude}, ${latitude}), 4326)::geography
+        WHERE id = ${location.id} AND geog IS NULL
+      `;
+    } catch (e) {
+      console.warn('Failed to set geography for new location:', e);
+    }
 
     res.status(201).json(location);
   })
@@ -46,7 +59,11 @@ router.get(
 router.get(
   '/:id',
   asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
+    const idResult = uuidParam.safeParse(req.params.id);
+    if (!idResult.success) {
+      throw new AppError('Invalid location ID format', 400);
+    }
+    const id = idResult.data;
 
     const location = await prisma.location.findUnique({
       where: { id },
@@ -67,7 +84,11 @@ router.get(
 router.get(
   '/:id/samples',
   asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
+    const idResult = uuidParam.safeParse(req.params.id);
+    if (!idResult.success) {
+      throw new AppError('Invalid location ID format', 400);
+    }
+    const id = idResult.data;
 
     const location = await prisma.location.findUnique({
       where: { id },

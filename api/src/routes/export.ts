@@ -1,14 +1,28 @@
 import { Router, Request, Response } from 'express';
+import rateLimit from 'express-rate-limit';
 import prisma from '../db/prisma';
 import { asyncHandler } from '../middleware/errorHandler';
 import { authMiddleware, type AuthenticatedRequest } from '../middleware/auth';
 
 const router = Router();
 
+// Export-specific rate limiter: 10 requests per minute per user (WQ-159)
+const exportLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  message: {
+    error: 'Too Many Requests',
+    message: 'Export rate limit exceeded. Max 10 exports per minute.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // GET /api/v1/samples/export - Export samples as CSV (requires auth)
 router.get(
   '/export',
   authMiddleware,
+  exportLimiter,
   asyncHandler(async (req: Request, res: Response) => {
     const authReq = req as AuthenticatedRequest;
     const currentUser = authReq.auth!;
@@ -61,9 +75,9 @@ router.get(
     const rows = samples.map((sample) => [
       sample.id,
       escapeCSV(sample.authorName),
-      sample.location.latitude.toString(),
-      sample.location.longitude.toString(),
-      escapeCSV(sample.location.address || ''),
+      sample.location?.latitude?.toString() || '',
+      sample.location?.longitude?.toString() || '',
+      sample.location?.address ? escapeCSV(sample.location.address) : '',
       sample.status,
       sample.ph?.toString() || '',
       sample.temperature?.toString() || '',
@@ -107,11 +121,8 @@ function escapeCSV(value: string): string {
   if (/^[=+\-@\t\r]/.test(value)) {
     value = "'" + value;
   }
-  // Escape quotes and wrap in quotes if contains comma, quote, or newline
-  if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-  return value;
+  // Always wrap in double quotes for maximum safety
+  return `"${value.replace(/"/g, '""')}"`;
 }
 
 export default router;

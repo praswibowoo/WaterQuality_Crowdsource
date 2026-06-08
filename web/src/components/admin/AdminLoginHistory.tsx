@@ -28,12 +28,12 @@ export default function AdminLoginHistory() {
 
   return (
     <div className="admin-section">
-      <button className="section-toggle" onClick={toggleLoginHistory}>
+      <button className="section-toggle" onClick={toggleLoginHistory} aria-expanded={showLoginHistory} aria-controls="login-history-content">
         <h3 className="section-title">📋 Login History</h3>
         <span className={`section-chevron ${showLoginHistory ? 'open' : ''}`}>▾</span>
       </button>
       {showLoginHistory && (
-        <div className="login-history">
+        <div className="login-history" id="login-history-content">
           {historyLoading ? (
             <p className="loading-text">Loading history...</p>
           ) : loginHistory.length === 0 ? (

@@ -37,6 +37,7 @@ const mockPrisma = {
   },
   $executeRaw: jest.fn<any>(),
   $queryRaw: jest.fn<any>(),
+  $transaction: jest.fn<any>(),
 };
 
 jest.mock('../db/prisma', () => ({
@@ -122,6 +123,10 @@ function mockSample(overrides?: Record<string, unknown>) {
 
 beforeEach(async () => {
   jest.clearAllMocks();
+  // $transaction wraps the callback with mockPrisma as the tx object (for findOrCreateLocation)
+  mockPrisma.$transaction.mockImplementation((async (cb: (tx: Record<string, unknown>) => unknown) => {
+    return cb(mockPrisma as unknown as Record<string, unknown>);
+  }) as unknown as typeof mockPrisma.$transaction);
   samplesRouter = (await import('../routes/samples')).default;
 });
 

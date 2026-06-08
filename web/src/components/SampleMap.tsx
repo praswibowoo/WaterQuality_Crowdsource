@@ -159,7 +159,7 @@ export default function SampleMap() {
 
   // Memoize filtered samples
   const validSamples = useMemo(() => {
-    return (samples || []).filter((s) => s.location?.latitude && s.location?.longitude) || [];
+    return (samples || []).filter((s) => s.location?.latitude != null && s.location?.longitude != null) || [];
   }, [samples]);
 
   // Start/stop GPS tracking
@@ -204,6 +204,11 @@ export default function SampleMap() {
   }, []);
 
   const center: [number, number] = useMemo(() => {
+    // Prefer user's current GPS position when available
+    if (latitude !== null && longitude !== null) {
+      return [latitude, longitude];
+    }
+    // Fallback to first sample if available
     if (validSamples.length > 0) {
       return [
         validSamples[0].location!.latitude,
@@ -211,7 +216,7 @@ export default function SampleMap() {
       ];
     }
     return DEFAULT_CENTER;
-  }, [validSamples]);
+  }, [validSamples, latitude, longitude]);
 
   if (isLoading) {
     return (
@@ -259,6 +264,7 @@ export default function SampleMap() {
           {/* Blue dot for user's current GPS position */}
           {userPosition && (
             <CircleMarker
+              key="user-location-dot"
               center={userPosition}
               radius={10}
               pathOptions={{ color: 'blue', fillColor: '#3b82f6', fillOpacity: 0.5 }}
@@ -337,6 +343,7 @@ export default function SampleMap() {
             className={`follow-gps-btn ${followUser ? 'active' : ''}`}
             onClick={toggleFollow}
             title={followUser ? 'Following GPS' : 'Click to follow GPS'}
+            aria-label={followUser ? 'Stop following GPS' : 'Follow GPS'}
           >
             {followUser ? '📍 Following' : '📍 Follow GPS'}
           </button>
@@ -347,6 +354,7 @@ export default function SampleMap() {
           className="search-here-btn"
           onClick={handleStartPinMode}
           title="Place a pin on the map to search nearby"
+          aria-label="Place search pin on map"
         >
           📍 Search Here
         </button>
@@ -355,6 +363,7 @@ export default function SampleMap() {
         <button
           className={`nearby-btn ${showNearby ? 'active' : ''}`}
           onClick={handleToggleNearby}
+          aria-label={showNearby ? 'Hide nearby samples' : 'Show nearby samples'}
         >
           {showNearby ? '✕ Close' : '📍 Nearby'}
         </button>

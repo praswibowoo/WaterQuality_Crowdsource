@@ -113,6 +113,13 @@ export interface ApiResponse<T> {
   error?: ApiError;
 }
 
+export interface SamplesStatsResponse {
+  total: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+}
+
 // Paginated response type
 export interface PaginatedResponse<T> {
   data: T[];

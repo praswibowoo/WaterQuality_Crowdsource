@@ -48,18 +48,8 @@ export function useSamplesStats() {
   return useQuery({
     queryKey: ['samples', 'stats'],
     queryFn: async (): Promise<SamplesStats> => {
-      const [all, pending, approved, rejected] = await Promise.all([
-        samplesApi.getAll({ limit: 1 }),
-        samplesApi.getAll({ status: 'pending', limit: 1 }),
-        samplesApi.getAll({ status: 'approved', limit: 1 }),
-        samplesApi.getAll({ status: 'rejected', limit: 1 }),
-      ]);
-      return {
-        total: all.totalCount,
-        pending: pending.totalCount,
-        approved: approved.totalCount,
-        rejected: rejected.totalCount,
-      };
+      const data = await samplesApi.getStats();
+      return data;
     },
     staleTime: 30000,
   });

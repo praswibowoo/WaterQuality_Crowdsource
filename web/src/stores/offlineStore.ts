@@ -31,22 +31,27 @@ export const useOfflineStore = create<OfflineState>()((set) => ({
   setOnlineStatus: (isOnline) => set({ isOnline }),
 
   refreshStats: async () => {
-    try {
-      const all = await offlineDb.offlineRecords.toArray();
-      const stats: SyncStats = {
-        pending: all.filter((r) => r.status === 'pending_sync').length,
-        syncing: all.filter((r) => r.status === 'syncing').length,
-        synced: all.filter((r) => r.status === 'synced').length,
-        failed: all.filter((r) => r.status === 'failed').length,
-        duplicate: all.filter((r) => r.status === 'duplicate').length,
-        dropped: all.filter((r) => r.status === 'dropped').length,
-        total: all.length,
-        lastSyncTime: Date.now(),
-      };
-      set({ syncStats: stats });
-    } catch (e) {
-      console.error('Failed to refresh sync stats:', e);
-    }
+    const safeCount = async (status: string): Promise<number> => {
+      try {
+        return await offlineDb.offlineRecords.where('status').equals(status).count();
+      } catch {
+        return 0;
+      }
+    };
+    const [pending, syncing, synced, failed, duplicate, dropped] = await Promise.all([
+      safeCount('pending_sync'),
+      safeCount('syncing'),
+      safeCount('synced'),
+      safeCount('failed'),
+      safeCount('duplicate'),
+      safeCount('dropped'),
+    ]);
+    const total = pending + syncing + synced + failed + duplicate + dropped;
+    const stats: SyncStats = {
+      pending, syncing, synced, failed, duplicate, dropped, total,
+      lastSyncTime: Date.now(),
+    };
+    set({ syncStats: stats });
   },
 
   setLastSyncTime: (time) => set({ lastSyncTime: time }),

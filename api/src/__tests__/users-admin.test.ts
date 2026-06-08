@@ -5,6 +5,7 @@ import { errorHandler, notFoundHandler } from '../middleware/errorHandler';
 
 const TEST_USER_ID = '00000000-0000-0000-0000-000000000001';
 const TEST_ADMIN_ID = '00000000-0000-0000-0000-000000000002';
+const TEST_TARGET_ID = '00000000-0000-0000-0000-000000000003';
 
 const mockPrisma = {
   userAccount: {
@@ -12,11 +13,13 @@ const mockPrisma = {
     findUnique: jest.fn<any>(),
     create: jest.fn<any>(),
     update: jest.fn<any>(),
+    count: jest.fn<any>(),
   },
   loginLog: {
     create: jest.fn<any>(),
   },
   $executeRaw: jest.fn<any>(),
+  $transaction: jest.fn<any>().mockImplementation(async (fn: any) => fn(mockPrisma)),
 };
 
 jest.mock('../db/prisma', () => ({
@@ -144,14 +147,14 @@ describe('Users Admin API — (UA1-UA8)', () => {
   it('UA1: PUT /:id deactivation kills sessions', async () => {
     mockPrisma.userAccount.findUnique
       .mockResolvedValueOnce({ id: TEST_ADMIN_ID, username: 'admin', role: 'admin', active: true })
-      .mockResolvedValueOnce({ id: 'target-id', name: 'Target', username: 'target', role: 'user', active: true });
+      .mockResolvedValueOnce({ id: TEST_TARGET_ID, name: 'Target', username: 'target', role: 'user', active: true });
     mockPrisma.userAccount.update.mockResolvedValue({
-      id: 'target-id', name: 'Target', username: 'target', role: 'user', active: false,
+      id: TEST_TARGET_ID, name: 'Target', username: 'target', role: 'user', active: false,
     });
 
     const app = createApp({ userId: TEST_ADMIN_ID, username: 'admin', role: 'admin' });
     await request(app)
-      .put('/api/v1/users/target-id')
+      .put(`/api/v1/users/${TEST_TARGET_ID}`)
       .send({ active: false });
 
     expect(mockPrisma.$executeRaw).toHaveBeenCalled();
@@ -173,20 +176,20 @@ describe('Users Admin API — (UA1-UA8)', () => {
   it('UA2: PUT /:id/reset-password creates audit log', async () => {
     mockPrisma.userAccount.findUnique
       .mockResolvedValueOnce({ id: TEST_ADMIN_ID, username: 'admin', role: 'admin', active: true })
-      .mockResolvedValueOnce({ id: 'target-id', name: 'Target', username: 'target', role: 'user', active: true });
+      .mockResolvedValueOnce({ id: TEST_TARGET_ID, name: 'Target', username: 'target', role: 'user', active: true });
     mockPrisma.userAccount.update.mockResolvedValue({});
     mockPrisma.$executeRaw.mockResolvedValue([]);
     mockPrisma.loginLog.create.mockResolvedValue({});
 
     const app = createApp({ userId: TEST_ADMIN_ID, username: 'admin', role: 'admin' });
     const res = await request(app)
-      .put('/api/v1/users/target-id/reset-password')
+      .put(`/api/v1/users/${TEST_TARGET_ID}/reset-password`)
       .send({ newPassword: 'newPass123' });
 
     expect(res.status).toBe(200);
     expect(mockPrisma.loginLog.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ action: 'password_change', userId: 'target-id' }),
+        data: expect.objectContaining({ action: 'password_change', userId: TEST_TARGET_ID }),
       })
     );
   });

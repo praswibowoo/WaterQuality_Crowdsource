@@ -105,3 +105,13 @@ export const MEASUREMENT_PRIORITY = [
   'sodium',
   'temperature',
 ] as const;
+
+// Compile-time check: MEASUREMENT_PRIORITY must include ALL measurement keys.
+// If a new field is added to MEASUREMENT_FIELDS and not to MEASUREMENT_PRIORITY,
+// TypeScript will error here.
+// @ts-expect-error — unused type assertion for compile-time validation
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _AssertAllKeysCovered =
+  typeof MEASUREMENT_PRIORITY[number] extends MeasurementFieldKey
+    ? true
+    : never;

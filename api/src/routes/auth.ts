@@ -39,8 +39,20 @@ router.post(
     });
 
     // Auto-login after registration (C5) — regenerate session to prevent fixation
+    let responded = false;
+    const safetyTimeout = setTimeout(() => {
+      if (!responded) {
+        responded = true;
+        console.error('Session regenerate on registration timed out');
+        res.status(500).json({ error: 'Internal server error', message: 'Failed to create session' });
+      }
+    }, 10000);
+
     req.session.regenerate(async (err) => {
+      clearTimeout(safetyTimeout);
+      if (responded) return;
       if (err) {
+        responded = true;
         console.error('Session regenerate error on registration:', err);
         res.status(500).json({ error: 'Internal server error', message: 'Failed to create session' });
         return;
@@ -56,6 +68,7 @@ router.post(
         console.error('Registration log failed (non-critical):', logErr);
       }
 
+      responded = true;
       res.status(201).json({
         user: {
           id: user.id,
@@ -134,8 +147,20 @@ router.post(
     }
 
     // Regenerate session ID to prevent session fixation (H5)
+    let responded = false;
+    const safetyTimeout = setTimeout(() => {
+      if (!responded) {
+        responded = true;
+        console.error('Session regenerate on login timed out');
+        res.status(500).json({ error: 'Internal server error', message: 'Failed to create session' });
+      }
+    }, 10000);
+
     req.session.regenerate(async (err) => {
+      clearTimeout(safetyTimeout);
+      if (responded) return;
       if (err) {
+        responded = true;
         console.error('Session regenerate error:', err);
         res.status(500).json({ error: 'Internal server error', message: 'Failed to create session' });
         return;
@@ -153,6 +178,7 @@ router.post(
         console.error('Login event log failed (non-critical):', logErr);
       }
 
+      responded = true;
       res.json({
         user: {
           id: user.id,

@@ -8,7 +8,7 @@ export default function OfflineStatusBar() {
   if (isOnline && pendingCount === 0) return null;
 
   return (
-    <div className={`offline-status-bar ${isOnline ? 'syncing' : 'offline'}`}>
+    <div className={`offline-status-bar ${isOnline ? 'syncing' : 'offline'}`} aria-live="polite">
       {!isOnline ? (
         <span>
           You are offline. Submissions will be saved and synced when you reconnect.

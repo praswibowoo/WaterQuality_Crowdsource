@@ -172,12 +172,24 @@ export default function AdminDashboard() {
       {actionError && <div className="form-error">{actionError}</div>}
 
       {/* Tab Navigation */}
-      <div className="tab-nav">
-        <button className={`tab-nav-btn ${activeTab === 'samples' ? 'active' : ''}`} onClick={() => setActiveTab('samples')}>📋 Samples</button>
-        <button className={`tab-nav-btn ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')}>👥 Users</button>
+      <div className="tab-nav" role="tablist">
+        <button
+          className={`tab-nav-btn ${activeTab === 'samples' ? 'active' : ''}`}
+          onClick={() => setActiveTab('samples')}
+          role="tab"
+          aria-selected={activeTab === 'samples'}
+          aria-controls="samples-tab"
+        >📋 Samples</button>
+        <button
+          className={`tab-nav-btn ${activeTab === 'users' ? 'active' : ''}`}
+          onClick={() => setActiveTab('users')}
+          role="tab"
+          aria-selected={activeTab === 'users'}
+          aria-controls="users-tab"
+        >👥 Users</button>
       </div>
 
-      {activeTab === 'samples' ? (<>
+      {activeTab === 'samples' ? (<div id="samples-tab" role="tabpanel">
       {/* Stats Panel */}
       <div className="stats-panel">
         <div className="stat-badge stat-total">
@@ -415,8 +427,8 @@ export default function AdminDashboard() {
         />
       )}
 
-      </>) : (
-        <AdminUsersTab />
+      </div>) : (
+        <div id="users-tab" role="tabpanel"><AdminUsersTab /></div>
       )}
 
       {/* 🔑 Change Password Section */}

@@ -77,7 +77,7 @@ export function useGeolocation(): UseGeolocationReturn {
       {
         enableHighAccuracy: true,
         timeout: 10000,
-        maximumAge: 60000,
+        maximumAge: 30000, // 30s cache for consistency with watchPosition
       }
     );
   }, [handleSuccess, handleError]);
@@ -105,7 +105,7 @@ export function useGeolocation(): UseGeolocationReturn {
       {
         enableHighAccuracy: true,
         timeout: 10000,
-        maximumAge: 0, // Always get fresh position
+        maximumAge: 30000, // 30s cache for battery efficiency
       }
     );
 

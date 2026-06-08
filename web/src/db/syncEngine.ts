@@ -93,57 +93,70 @@ export async function syncRecord(record: OfflineRecord): Promise<OfflineRecord> 
 }
 
 export async function processQueue(): Promise<{ synced: number; failed: number; dropped: number }> {
-  // Concurrency guard — prevent parallel sync loops
+  // Cross-tab concurrency guard using Web Locks API (supported in modern browsers)
+  if (typeof navigator !== 'undefined' && 'locks' in navigator) {
+    const result = await navigator.locks.request(
+      'water-quality-sync',
+      { ifAvailable: true },
+      async () => executeQueue()
+    );
+    return result ?? { synced: 0, failed: 0, dropped: 0 };
+  }
+
+  // Fallback: module-level guard for non-supporting browsers
   if (isProcessing) return { synced: 0, failed: 0, dropped: 0 };
   isProcessing = true;
-
   try {
-    // Normal pending + failed records
-    const pendingRecords = await offlineDb.offlineRecords
-      .where('status')
-      .anyOf('pending_sync', 'failed')
-      .toArray();
-
-    // Stuck 'syncing' records — in sync state for >5 minutes (crash recovery)
-    const staleCutoff = Date.now() - STALE_SYNCING_MS;
-    const stuckRecords = await offlineDb.offlineRecords
-      .where('status')
-      .equals('syncing')
-      .and((r) => r.createdAt < staleCutoff)
-      .toArray();
-
-    // Reset stuck records back to failed so they get retried
-    for (const stuck of stuckRecords) {
-      await offlineDb.offlineRecords.update(stuck.id, { status: 'failed' });
-      await logAction(stuck.id, 'fail', 'Stuck syncing — reclaimed after crash');
-    }
-
-    const allRecords = [...pendingRecords, ...stuckRecords];
-
-    if (allRecords.length === 0) {
-      return { synced: 0, failed: 0, dropped: 0 };
-    }
-
-    let synced = 0;
-    let failed = 0;
-    let dropped = 0;
-
-    for (const record of allRecords) {
-      try {
-        const result = await syncRecord(record);
-        if (result.status === 'synced') synced++;
-        else if (result.status === 'dropped') dropped++;
-        else failed++;
-      } catch (e) {
-        console.error('Unexpected error syncing record:', record.id, e);
-        failed++;
-      }
-    }
-
-    return { synced, failed, dropped };
+    return await executeQueue();
   } finally {
     isProcessing = false;
   }
+}
+
+async function executeQueue(): Promise<{ synced: number; failed: number; dropped: number }> {
+  // Normal pending + failed records
+  const pendingRecords = await offlineDb.offlineRecords
+    .where('status')
+    .anyOf('pending_sync', 'failed')
+    .toArray();
+
+  // Stuck 'syncing' records — in sync state for >5 minutes (crash recovery)
+  const staleCutoff = Date.now() - STALE_SYNCING_MS;
+  const stuckRecords = await offlineDb.offlineRecords
+    .where('status')
+    .equals('syncing')
+    .and((r) => r.createdAt < staleCutoff)
+    .toArray();
+
+  // Reset stuck records back to failed so they get retried
+  for (const stuck of stuckRecords) {
+    await offlineDb.offlineRecords.update(stuck.id, { status: 'failed' });
+    await logAction(stuck.id, 'fail', 'Stuck syncing — reclaimed after crash');
+  }
+
+  const allRecords = [...pendingRecords, ...stuckRecords];
+
+  if (allRecords.length === 0) {
+    return { synced: 0, failed: 0, dropped: 0 };
+  }
+
+  let synced = 0;
+  let failed = 0;
+  let dropped = 0;
+
+  for (const record of allRecords) {
+    try {
+      const result = await syncRecord(record);
+      if (result.status === 'synced') synced++;
+      else if (result.status === 'dropped') dropped++;
+      else failed++;
+    } catch (e) {
+      console.error('Unexpected error syncing record:', record.id, e);
+      failed++;
+    }
+  }
+
+  return { synced, failed, dropped };
 }
 
 async function logAction(recordId: string, action: SyncLogAction, details?: string): Promise<void> {

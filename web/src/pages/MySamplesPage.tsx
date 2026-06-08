@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useMySamples } from '../hooks/useMySamples';
@@ -9,11 +9,22 @@ export default function MySamplesPage() {
   const { user } = useAuth();
   const [statusFilter, setStatusFilter] = useState<string>('');
 
-  const { data: page, isLoading, error } = useMySamples(
+  const {
+    data,
+    isLoading,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useMySamples(
     statusFilter ? { status: statusFilter } : undefined
   );
 
-  const samples = page?.data || [];
+  const samples = useMemo(
+    () => data?.pages.flatMap((page) => page.data) ?? [],
+    [data]
+  );
+  const totalCount = data?.pages?.[0]?.totalCount ?? 0;
 
   return (
     <div className="my-samples-page">
@@ -70,6 +81,25 @@ export default function MySamplesPage() {
           </Link>
         ))}
       </div>
+
+      {samples.length > 0 && (
+        <div className="pagination-bar">
+          <span className="pagination-info">
+            Showing {samples.length}{totalCount > samples.length ? ` of ${totalCount}` : ''} samples
+            {isFetchingNextPage && <span className="pagination-loading"> · Loading more...</span>}
+          </span>
+          {hasNextPage && (
+            <button
+              className="btn-primary"
+              onClick={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+              style={{ fontSize: '0.8rem', padding: 'var(--spacing-xs) var(--spacing-md)' }}
+            >
+              {isFetchingNextPage ? 'Loading...' : 'Load More'}
+            </button>
+          )}
+        </div>
+      )}
 
       <style>{`
         .my-samples-page {
@@ -155,6 +185,20 @@ export default function MySamplesPage() {
           border-radius: var(--radius-md);
           cursor: pointer;
           font-size: 0.8rem;
+        }
+        .pagination-bar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: var(--spacing-md) 0;
+          gap: var(--spacing-sm);
+        }
+        .pagination-info {
+          font-size: 0.8rem;
+          color: var(--color-text-muted);
+        }
+        .pagination-loading {
+          font-style: italic;
         }
       `}</style>
     </div>

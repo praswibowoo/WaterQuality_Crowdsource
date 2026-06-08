@@ -1,0 +1,48 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-typecheck-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate --schema=prisma/schema.prisma
+        working-directory: api
+
+      - name: Lint web
+        run: npm run lint
+        working-directory: web
+
+      - name: Lint api
+        run: npm run lint
+        working-directory: api
+
+      - name: Typecheck web
+        run: npx tsc --noEmit
+        working-directory: web
+
+      - name: Typecheck api
+        run: npx tsc --noEmit
+        working-directory: api
+
+      - name: Test web
+        run: npm run test
+        working-directory: web
+
+      - name: Test api
+        run: npm run test
+        working-directory: api

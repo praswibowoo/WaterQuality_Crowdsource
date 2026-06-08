@@ -102,4 +102,7 @@ model Photo {
   sampleId  String
   sample    Sample   @relation(fields: [sampleId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+
+  @@index([sampleId])
+  @@index([createdAt])
 }

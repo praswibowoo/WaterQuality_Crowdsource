@@ -43,7 +43,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
     next();
   } catch (err) {
     console.error('Auth middleware DB error:', err);
-    res.status(500).json({ error: 'Internal server error', message: 'Authentication service unavailable' });
+    next(err);
   }
 };
 

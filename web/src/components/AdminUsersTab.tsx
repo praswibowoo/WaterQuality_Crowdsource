@@ -108,7 +108,8 @@ export default function AdminUsersTab() {
 
       {!loading && !error && users.length > 0 && (
         <div className="users-table-wrapper">
-          <table className="users-table">
+          <table className="users-table" aria-label="User management">
+            <caption className="sr-only">User management table</caption>
             <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Status</th><th>Samples</th><th>Actions</th></tr></thead>
             <tbody>
               {users.map((u) => (

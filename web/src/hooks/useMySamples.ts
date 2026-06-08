@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { samplesApi } from '../api/samples';
 
 export function useMySamples(filters?: {
@@ -6,9 +6,12 @@ export function useMySamples(filters?: {
   sortBy?: string;
   sortOrder?: string;
 }) {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ['my-samples', filters],
-    queryFn: () => samplesApi.getMySamples({ ...filters, limit: 100 }),
+    queryFn: ({ pageParam }) =>
+      samplesApi.getMySamples({ ...filters, cursor: pageParam as string | undefined, limit: 20 }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     staleTime: 30000,
   });
 }
