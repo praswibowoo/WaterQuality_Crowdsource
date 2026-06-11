@@ -467,16 +467,13 @@
 
 ---
 
-## Milestone 11: Data Quality Scoring & Spatial Interpolation (v1.1.0) ✅ Phase 1 Complete
+## Milestone 11: Data Quality Scoring (v1.1.0) ✅ Done
 
-**Goal**: Make crowdsourced water quality data scientifically defensible through automated quality assurance, and enable spatial pattern visualization via geostatistical interpolation.
+**Goal**: Make crowdsourced water quality data scientifically defensible through automated quality assurance.
 
 **User Approved Decisions:**
 - Research context: urban-area water quality monitoring (mangrove/coastal/estuarine environments)
-- Color scale: Viridis (colorblind-safe, perceptually uniform)
 - Temporal consistency fallback: compare against same `waterBodyType` when location has <3 historical samples
-- Implementation order: WQ-108 first (backend scoring), then WQ-109 (frontend heatmap) after WQ-108 is verified bug-free
-- WQ-110 deferred until sample count ≥ 200 with temporal spread across ≥ 3 seasons
 
 ### Phase 1: Data Quality Scoring
 
@@ -493,30 +490,6 @@
 | Frontend badge renders correctly (green/yellow/red/gray) | ✅ Done |
 | Admin can filter samples by `qualityScore ≥ 0.8` | ✅ Done |
 | `npm run lint && npm run typecheck` pass in all workspaces | ✅ Done |
-
-### Phase 2: Spatial Interpolation Heatmap (Planned)
-
-| Feature ID | Feature | Priority | Status |
-|------------|---------|----------|--------|
-| WQ-109 | Spatial Interpolation Heatmap (IDW) | 🟡 High | 📝 Planned |
-
-**Exit Criteria**
-| Criteria | Status |
-|----------|--------|
-| IDW computation produces mathematically correct results | 📝 Pending |
-| Heatmap overlay renders on SampleMap without blocking UI | 📝 Pending |
-| Parameter selector includes all 8 measurement fields | 📝 Pending |
-| Power slider (1.0–4.0) changes interpolation smoothness | 📝 Pending |
-| Viridis color scale is colorblind-safe | 📝 Pending |
-| All tests pass; lint/typecheck clean; bundle increase <15KB | 📝 Pending |
-
-### Phase 3: ML Prediction Engine (Future Backlog)
-
-| Feature ID | Feature | Priority | Status |
-|------------|---------|----------|--------|
-| WQ-110 | ML Prediction Engine (Random Forest/XGBoost) | 🟢 Medium | 📝 Future Backlog |
-
-**Trigger Condition:** `Sample` count ≥ 200 and temporal spread covers ≥ 3 seasons.
 
 ---
 
@@ -648,7 +621,7 @@
 
 
 
-## Milestone 13: Code Quality & Architecture (v1.3.0) ✅ Phase 1+2 Complete
+## Milestone 13: Code Quality & Architecture (v1.3.0) ✅ Done
 
 **Goal**: Refactor oversized components, extract shared utilities, and establish patterns for long-term maintainability.
 
@@ -668,14 +641,6 @@
 | WQ-150 | Split AdminDashboard (1213→999 lines) — extract PasswordChangeForm, LoginHistoryPanel | 🟡 High | ✅ Done |
 | WQ-151 | Split SampleForm (1442→1332 lines) — extract useImageCompression, AccuracyModal | 🟡 High | ✅ Done |
 
-### Phase 3: CSS Modules Migration (Planned)
-
-| Feature ID | Feature | Priority | Status |
-|------------|---------|----------|--------|
-| WQ-152 | Migrate AdminDashboard inline styles to CSS modules | 🟢 Medium | 📝 Planned |
-| WQ-153 | Migrate SampleForm inline styles to CSS modules | 🟢 Medium | 📝 Planned |
-| WQ-154 | Migrate SampleMap inline styles to CSS modules | 🟢 Medium | 📝 Planned |
-
 **Exit Criteria**
 | Criteria | Status |
 |----------|--------|
@@ -685,11 +650,8 @@
 | SampleForm reduced from 1442→1332 lines (110 line reduction) | ✅ Done |
 | AdminPasswordChange, AdminLoginHistory, imageCompression, AccuracyInfoModal extracted | ✅ Done |
 | All existing tests pass | ✅ Done |
-| No inline `<style>` blocks (CSS modules migration) | 📝 Pending — Phase 3 |
 
 ---
-
-
 
 ## Milestone 14: Security Hardening (v1.3.1) ✅ Done
 
@@ -720,7 +682,7 @@
 | Concurrent location creation produces no duplicates (transactional) | ✅ Done |
 | Export rate limited to 10 req/min | ✅ Done |
 | Temp passwords use crypto.randomInt | ✅ Done |
-| All 247 existing tests pass | ✅ Done |
+| All 275 existing tests pass | ✅ Done |
 
 ---
 
@@ -763,7 +725,7 @@
 | All interactive elements have visible focus indicators | ✅ Done |
 | Admin tabs properly labeled for screen readers | ✅ Done |
 | Focus returns to trigger element after modal close | ✅ Done |
-| All 247 existing tests pass | ✅ Done |
+| All 275 existing tests pass | ✅ Done |
 
 ---
 
@@ -887,7 +849,7 @@
 
 ## Future: AI Analysis 📝 Planned
 
-**Goal**: Scope and implement the AI microservice for water quality analysis.
+**Goal**: Scope and implement the AI microservice and spatial analysis for water quality.
 
 | Feature ID | Feature | Priority | Status |
 |------------|---------|----------|--------|
@@ -896,8 +858,8 @@
 | WQ-110 | ML Prediction Engine (Random Forest/XGBoost) | 🟢 Medium | 📝 Future Backlog |
 
 **Notes:**
-- WQ-063 CSP completed in v1.0.0 (PostGIS milestone)
 - WQ-071 deferred until concrete AI model/requirements defined by research team
+- WQ-109 has spec at `docs/wq-109-spatial-interpolation-heatmap-spec.md`
 - WQ-110 deferred until ≥200 samples collected
 
 ---
@@ -907,6 +869,9 @@
 | Feature ID | Feature | Priority | Status |
 |------------|---------|----------|--------|
 | WQ-137 | User list pagination + sorting | 🟡 High | 📝 Planned |
+| WQ-152 | Migrate AdminDashboard inline styles to CSS modules | 🟢 Medium | 📝 Future Backlog |
+| WQ-153 | Migrate SampleForm inline styles to CSS modules | 🟢 Medium | 📝 Future Backlog |
+| WQ-154 | Migrate SampleMap inline styles to CSS modules | 🟢 Medium | 📝 Future Backlog |
 | WQ-195 | Batch approve/reject in admin | 🟡 High | 📝 Future Backlog |
 | WQ-196 | User-initiated password reset | 🟡 High | 📝 Future Backlog |
 | WQ-197 | Dark mode support | 🟢 Medium | 📝 Future Backlog |
