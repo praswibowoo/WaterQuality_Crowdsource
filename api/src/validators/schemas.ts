@@ -63,6 +63,14 @@ export const getSamplesQuerySchema = z.object({
   qualityScoreFilter: z.enum(['high', 'moderate', 'low', 'none']).optional(),
 });
 
+export const getUsersQuerySchema = z.object({
+  cursor: z.string().uuid().optional(),
+  limit: z.coerce.number().min(1).max(100).optional().default(20),
+  sortBy: z.enum(['name', 'username', 'role', 'createdAt']).optional().default('username'),
+  sortOrder: z.enum(['asc', 'desc']).optional().default('asc'),
+  search: z.string().max(100).optional(),
+});
+
 export const markersQuerySchema = z.object({
   cursor: z.string().uuid().optional(),
   limit: z.coerce.number().min(1).max(1000).optional().default(500),

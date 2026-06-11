@@ -1,12 +1,38 @@
-import { useState, useCallback, useEffect } from 'react';
-import { usersApi, type AdminUser } from '../api/users';
+import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { usersApi, type AdminUser, type UsersFilters } from '../api/users';
+import { useUsers } from '../hooks/useUsers';
+import { useDebounce } from '../hooks/useDebounce';
 import ConfirmDialog from './ConfirmDialog';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
 export default function AdminUsersTab() {
-  const [users, setUsers] = useState<AdminUser[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  // Search & sort state
+  const [searchInput, setSearchInput] = useState('');
+  const debouncedSearch = useDebounce(searchInput, 300);
+  const [sortBy, setSortBy] = useState<UsersFilters['sortBy']>('username');
+  const [sortOrder, setSortOrder] = useState<UsersFilters['sortOrder']>('asc');
+
+  const filters: UsersFilters = {
+    sortBy,
+    sortOrder,
+    ...(debouncedSearch ? { search: debouncedSearch } : {}),
+  };
+
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useUsers(filters);
+
+  const users = data?.pages.flatMap((p) => p.data) ?? [];
+  const totalCount = data?.pages[0]?.totalCount ?? 0;
 
   // Create user
   const [showCreate, setShowCreate] = useState(false);
@@ -26,21 +52,12 @@ export default function AdminUsersTab() {
   const [rLoading, setRLoading] = useState(false);
   const [rSuccess, setRSuccess] = useState(false);
 
-  // M4: Inline feedback
+  // Inline feedback
   const [toggleSuccess, setToggleSuccess] = useState<string | null>(null);
   const [toggleError, setToggleError] = useState<string | null>(null);
 
-  // M5: Deactivation confirmation
+  // Deactivation confirmation
   const [deactivateTarget, setDeactivateTarget] = useState<AdminUser | null>(null);
-
-  const fetchUsers = useCallback(async () => {
-    setLoading(true); setError(null);
-    try { const { users: list } = await usersApi.list(); setUsers(list); }
-    catch { setError('Failed to load users'); }
-    finally { setLoading(false); }
-  }, []);
-
-  useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault(); setCError(null); setTempPw(null);
@@ -50,14 +67,13 @@ export default function AdminUsersTab() {
       const r = await usersApi.create({ name: cName, username: cUsername, password: cPassword || undefined, role: cRole });
       if (r.tempPassword) setTempPw(r.tempPassword);
       setCName(''); setCUsername(''); setCPassword(''); setCRole('user');
-      fetchUsers();
+      queryClient.invalidateQueries({ queryKey: ['users'] });
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;
       setCError(status === 409 ? 'Username already taken' : 'Failed to create user');
     } finally { setCLoading(false); }
   };
 
-  // M5: Show confirmation before toggling
   const handleToggleActive = (u: AdminUser) => {
     setDeactivateTarget(u);
   };
@@ -69,7 +85,7 @@ export default function AdminUsersTab() {
       await usersApi.update(deactivateTarget.id, { active: !deactivateTarget.active });
       setToggleSuccess(`User ${deactivateTarget.active ? 'deactivated' : 'reactivated'} successfully`);
       setDeactivateTarget(null);
-      fetchUsers();
+      queryClient.invalidateQueries({ queryKey: ['users'] });
     } catch {
       setToggleError('Failed to update user');
       setDeactivateTarget(null);
@@ -93,6 +109,20 @@ export default function AdminUsersTab() {
 
   const closeCreate = () => { setShowCreate(false); setTempPw(null); };
 
+  const toggleSort = (field: UsersFilters['sortBy']) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('asc');
+    }
+  };
+
+  const sortIndicator = (field: UsersFilters['sortBy']) => {
+    if (sortBy !== field) return '';
+    return sortOrder === 'asc' ? ' ▲' : ' ▼';
+  };
+
   return (
     <div className="users-tab">
       <div className="users-tab-header">
@@ -100,45 +130,138 @@ export default function AdminUsersTab() {
         <button className="btn-primary" onClick={() => setShowCreate(true)}>+ Create User</button>
       </div>
 
-      {loading && <p className="loading-text">Loading users...</p>}
-      {error && <div className="form-error">{error}</div>}
+      {/* Search */}
+      <div className="users-search">
+        <input
+          type="text"
+          className="users-search-input"
+          placeholder="Search by name or username..."
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          aria-label="Search users by name or username"
+        />
+        {searchInput && (
+          <button
+            className="btn-tiny btn-gray"
+            onClick={() => setSearchInput('')}
+            aria-label="Clear search"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
+      {/* Status messages */}
       {toggleSuccess && <div className="form-success">{toggleSuccess}</div>}
       {toggleError && <div className="form-error">{toggleError}</div>}
-      {!loading && !error && users.length === 0 && <p className="empty-text">No users found.</p>}
 
-      {!loading && !error && users.length > 0 && (
-        <div className="users-table-wrapper">
-          <table className="users-table" aria-label="User management">
-            <caption className="sr-only">User management table</caption>
-            <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Status</th><th>Samples</th><th>Actions</th></tr></thead>
-            <tbody>
-              {users.map((u) => (
-                <tr key={u.id} className={!u.active ? 'inactive-row' : ''}>
-                  <td className="user-name">{u.name || '—'}</td>
-                  <td className="user-username">{u.username}</td>
-                  <td><span className={`role-badge role-${u.role}`}>{u.role}</span></td>
-                  <td><span className={`st-badge ${u.active ? 'st-active' : 'st-inactive'}`}>{u.active ? 'Active' : 'Inactive'}</span></td>
-                  <td>{u._count?.samples ?? 0}</td>
-                  <td className="user-actions">
-                    {u.role === 'admin' ? (
-                      <button className="btn-tiny btn-green" onClick={() => setResetUser(u)}>🔑 Reset PW</button>
-                    ) : (
-                      <>
-                        {u.active
-                          ? <button className="btn-tiny btn-amber" onClick={() => handleToggleActive(u)}>❌ Deactivate</button>
-                          : <button className="btn-tiny btn-green" onClick={() => handleToggleActive(u)}>✅ Reactivate</button>}
-                        <button className="btn-tiny btn-gray" onClick={() => setResetUser(u)}>🔑 Reset PW</button>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Loading skeleton */}
+      {isLoading && (
+        <div className="users-loading">
+          <p className="loading-text">Loading users...</p>
         </div>
       )}
 
-      {/* M5: Deactivation confirmation dialog */}
+      {/* Error state */}
+      {isError && (
+        <div className="form-error" role="alert">
+          {error?.message || 'Failed to load users'}
+        </div>
+      )}
+
+      {/* Empty states */}
+      {!isLoading && !isError && users.length === 0 && !debouncedSearch && (
+        <p className="empty-text">No users registered yet.</p>
+      )}
+      {!isLoading && !isError && users.length === 0 && debouncedSearch && (
+        <p className="empty-text">No users match &lsquo;{debouncedSearch}&rsquo;</p>
+      )}
+
+      {/* User table */}
+      {!isLoading && !isError && users.length > 0 && (
+        <>
+          <div className="users-count">
+            Showing {users.length} of {totalCount} users
+          </div>
+          <div className="users-table-wrapper">
+            <table className="users-table" aria-label="User management">
+              <caption className="sr-only">User management table</caption>
+              <thead>
+                <tr>
+                  <th>
+                    <button
+                      className="sort-btn"
+                      onClick={() => toggleSort('name')}
+                      aria-label={`Sort by name${sortIndicator('name')}`}
+                    >
+                      Name{sortIndicator('name')}
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      className="sort-btn"
+                      onClick={() => toggleSort('username')}
+                      aria-label={`Sort by username${sortIndicator('username')}`}
+                    >
+                      Username{sortIndicator('username')}
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      className="sort-btn"
+                      onClick={() => toggleSort('role')}
+                      aria-label={`Sort by role${sortIndicator('role')}`}
+                    >
+                      Role{sortIndicator('role')}
+                    </button>
+                  </th>
+                  <th>Status</th>
+                  <th>Samples</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((u) => (
+                  <tr key={u.id} className={!u.active ? 'inactive-row' : ''}>
+                    <td className="user-name">{u.name || '—'}</td>
+                    <td className="user-username">{u.username}</td>
+                    <td><span className={`role-badge role-${u.role}`}>{u.role}</span></td>
+                    <td><span className={`st-badge ${u.active ? 'st-active' : 'st-inactive'}`}>{u.active ? 'Active' : 'Inactive'}</span></td>
+                    <td>{u._count?.samples ?? 0}</td>
+                    <td className="user-actions">
+                      {u.role === 'admin' ? (
+                        <button className="btn-tiny btn-green" onClick={() => setResetUser(u)} aria-label={`Reset password for ${u.username}`}>🔑 Reset PW</button>
+                      ) : (
+                        <>
+                          {u.active
+                            ? <button className="btn-tiny btn-amber" onClick={() => handleToggleActive(u)} aria-label={`Deactivate ${u.username}`}>❌ Deactivate</button>
+                            : <button className="btn-tiny btn-green" onClick={() => handleToggleActive(u)} aria-label={`Reactivate ${u.username}`}>✅ Reactivate</button>}
+                          <button className="btn-tiny btn-gray" onClick={() => setResetUser(u)} aria-label={`Reset password for ${u.username}`}>🔑 Reset PW</button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Load More */}
+          {hasNextPage && (
+            <div className="users-load-more">
+              <button
+                className="btn-primary"
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
+              >
+                {isFetchingNextPage ? 'Loading...' : 'Load More'}
+              </button>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Deactivation confirmation dialog */}
       {deactivateTarget && (
         <ConfirmDialog
           title={deactivateTarget.active ? 'Deactivate User' : 'Reactivate User'}
@@ -171,7 +294,7 @@ function CreateUserModal({ onClose, cName, setCName, cUsername, setCUsername, cP
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div ref={containerRef} className="modal-card" role="dialog" aria-modal="true" aria-label="Create user" onClick={(e) => e.stopPropagation()} tabIndex={-1}>
-        <div className="modal-hdr"><h3>Create User</h3><button className="modal-x" onClick={onClose}>×</button></div>
+        <div className="modal-hdr"><h3>Create User</h3><button className="modal-x" onClick={onClose} aria-label="Close create user dialog">×</button></div>
             {tempPw ? (
               <div className="temp-pw-box">
                 <p>User created successfully!</p>
@@ -208,7 +331,7 @@ function ResetPasswordModal({ resetUser, onClose, onReset, rNew, setRNew, rConfi
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div ref={containerRef} className="modal-card" role="dialog" aria-modal="true" aria-label={`Reset password for ${resetUser.username}`} onClick={(e) => e.stopPropagation()} tabIndex={-1}>
-        <div className="modal-hdr"><h3>Reset Password — {resetUser.username}</h3><button className="modal-x" onClick={onClose}>×</button></div>
+        <div className="modal-hdr"><h3>Reset Password — {resetUser.username}</h3><button className="modal-x" onClick={onClose} aria-label="Close reset password dialog">×</button></div>
             {rSuccess ? (
               <div className="temp-pw-box">
                 <p className="form-success" style={{ padding: '1rem', margin: 0 }}>✓ Password reset successfully</p>

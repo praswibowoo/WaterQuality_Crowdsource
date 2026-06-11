@@ -22,9 +22,23 @@ export interface AdminUser {
   };
 }
 
+export interface UsersFilters {
+  cursor?: string;
+  limit?: number;
+  sortBy?: 'name' | 'username' | 'role' | 'createdAt';
+  sortOrder?: 'asc' | 'desc';
+  search?: string;
+}
+
+export interface UsersResponse {
+  data: AdminUser[];
+  nextCursor: string | null;
+  totalCount: number;
+}
+
 export const usersApi = {
-  async list(): Promise<{ users: AdminUser[] }> {
-    const response = await apiClient.get<{ users: AdminUser[] }>('/users');
+  async list(filters?: UsersFilters): Promise<UsersResponse> {
+    const response = await apiClient.get<UsersResponse>('/users', { params: filters });
     return response.data;
   },
 

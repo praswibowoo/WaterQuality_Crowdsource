@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import prisma from '../db/prisma';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
 import { adminMiddleware, type AuthenticatedRequest } from '../middleware/auth';
-import { createUserSchema, updateUserSchema, resetPasswordSchema, uuidParam } from '../validators/schemas';
+import { createUserSchema, updateUserSchema, resetPasswordSchema, uuidParam, getUsersQuerySchema } from '../validators/schemas';
 
 const router = Router();
 
@@ -30,13 +30,42 @@ async function killUserSessions(userId: string): Promise<void> {
   }
 }
 
-// GET /api/v1/users - List all users (admin only)
+// GET /api/v1/users - List all users with pagination (admin only)
 router.get(
   '/',
   adminMiddleware,
-  asyncHandler(async (_req: Request, res: Response) => {
+  asyncHandler(async (req: Request, res: Response) => {
+    const queryResult = getUsersQuerySchema.safeParse(req.query);
+    if (!queryResult.success) {
+      throw queryResult.error;
+    }
+
+    const { cursor, limit: zodLimit, sortBy, sortOrder, search } = queryResult.data;
+
+    const limit = Math.min(zodLimit || 20, 200);
+
+    // Build where clause for search
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic Prisma where clause
+    const where: any = {};
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { username: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    // Build orderBy
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic Prisma orderBy
+    const orderBy: any = { [sortBy]: sortOrder };
+
     const users = await prisma.userAccount.findMany({
-      orderBy: { createdAt: 'desc' },
+      where,
+      orderBy,
+      take: limit + 1,
+      ...(cursor && {
+        cursor: { id: cursor },
+        skip: 1,
+      }),
       select: {
         id: true,
         name: true,
@@ -53,7 +82,13 @@ router.get(
       },
     });
 
-    res.json({ users });
+    const hasNextPage = users.length > limit;
+    const data = hasNextPage ? users.slice(0, limit) : users;
+    const nextCursor = hasNextPage && data.length > 0 ? data[data.length - 1].id : null;
+
+    const totalCount = await prisma.userAccount.count({ where });
+
+    res.json({ data, nextCursor, totalCount });
   })
 );
 

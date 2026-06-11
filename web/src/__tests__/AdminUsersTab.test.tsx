@@ -3,17 +3,22 @@ import { screen, waitFor } from '@testing-library/react';
 import { renderWithProviders } from './helpers/test-utils';
 import AdminUsersTab from '../components/AdminUsersTab';
 
-const { mockUsers } = vi.hoisted(() => ({
+const { mockUsers, mockListFn } = vi.hoisted(() => ({
   mockUsers: [
     { id: '1', name: 'Alice', username: 'alice', role: 'admin', active: true, createdAt: '2026-01-01', _count: { samples: 5, loginLogs: 10 } },
     { id: '2', name: 'Bob', username: 'bob', role: 'user', active: true, createdAt: '2026-02-01', _count: { samples: 2, loginLogs: 5 } },
     { id: '3', name: 'Charlie', username: 'charlie', role: 'user', active: false, createdAt: '2026-03-01', _count: { samples: 0, loginLogs: 1 } },
   ],
+  mockListFn: vi.fn().mockResolvedValue({ data: [
+    { id: '1', name: 'Alice', username: 'alice', role: 'admin', active: true, createdAt: '2026-01-01', _count: { samples: 5, loginLogs: 10 } },
+    { id: '2', name: 'Bob', username: 'bob', role: 'user', active: true, createdAt: '2026-02-01', _count: { samples: 2, loginLogs: 5 } },
+    { id: '3', name: 'Charlie', username: 'charlie', role: 'user', active: false, createdAt: '2026-03-01', _count: { samples: 0, loginLogs: 1 } },
+  ], nextCursor: null, totalCount: 3 }),
 }));
 
 vi.mock('../api/users', () => ({
   usersApi: {
-    list: vi.fn().mockResolvedValue({ users: mockUsers }),
+    list: mockListFn,
     create: vi.fn(),
     update: vi.fn(),
     resetPassword: vi.fn(),
@@ -23,6 +28,8 @@ vi.mock('../api/users', () => ({
 describe('AdminUsersTab (WQ-185)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Restore the resolved implementation after each test
+    mockListFn.mockResolvedValue({ data: mockUsers, nextCursor: null, totalCount: 3 });
   });
 
   it('renders user list with correct data', async () => {
@@ -58,13 +65,35 @@ describe('AdminUsersTab (WQ-185)', () => {
     });
   });
 
+  it('shows user count text', async () => {
+    renderWithProviders(<AdminUsersTab />);
+    await waitFor(() => {
+      expect(screen.getByText('Showing 3 of 3 users')).toBeInTheDocument();
+    });
+  });
+
+  it('renders search input', async () => {
+    renderWithProviders(<AdminUsersTab />);
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Search by name or username...')).toBeInTheDocument();
+    });
+  });
+
+  it('renders sort buttons on column headers', async () => {
+    renderWithProviders(<AdminUsersTab />);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /sort by name/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /sort by username/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /sort by role/i })).toBeInTheDocument();
+    });
+  });
+
   it('shows error state when API fails', async () => {
-    const { usersApi } = await import('../api/users');
-    (usersApi.list as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('API error'));
+    mockListFn.mockRejectedValueOnce(new Error('API error'));
 
     renderWithProviders(<AdminUsersTab />);
     await waitFor(() => {
-      expect(screen.getByText('Failed to load users')).toBeInTheDocument();
+      expect(screen.getByRole('alert')).toBeInTheDocument();
     });
   });
 });

@@ -61,19 +61,22 @@ beforeEach(async () => {
 });
 
 describe('Users Admin API — (UA1-UA8)', () => {
-  it('UA4: GET / returns users for admin', async () => {
+  it('UA4: GET / returns paginated users for admin', async () => {
     mockPrisma.userAccount.findUnique.mockResolvedValue(
       { id: TEST_ADMIN_ID, username: 'admin', role: 'admin', active: true }
     );
     mockPrisma.userAccount.findMany.mockResolvedValue([
       { id: TEST_USER_ID, name: 'Test User', username: 'testuser', role: 'user', active: true, createdAt: new Date(), _count: { samples: 0, loginLogs: 0 } },
     ]);
+    mockPrisma.userAccount.count.mockResolvedValue(1);
 
     const app = createApp({ userId: TEST_ADMIN_ID, username: 'admin', role: 'admin' });
     const res = await request(app).get('/api/v1/users');
 
     expect(res.status).toBe(200);
-    expect(res.body.users).toHaveLength(1);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.totalCount).toBe(1);
+    expect(res.body.nextCursor).toBeNull();
   });
 
   it('UA5: GET / returns 403 for non-admin', async () => {
