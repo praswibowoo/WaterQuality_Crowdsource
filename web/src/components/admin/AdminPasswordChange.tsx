@@ -8,6 +8,7 @@ interface PasswordChangeFormProps {
 export default function AdminPasswordChange({ onPasswordChanged }: PasswordChangeFormProps) {
   const { changePassword } = useAuth();
 
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
@@ -34,6 +35,7 @@ export default function AdminPasswordChange({ onPasswordChanged }: PasswordChang
     try {
       await changePassword(currentPassword, newPassword);
       setPasswordSuccess(true);
+      setShowChangePassword(true);
       setCurrentPassword('');
       setNewPassword('');
       setConfirmNewPassword('');
@@ -48,54 +50,66 @@ export default function AdminPasswordChange({ onPasswordChanged }: PasswordChang
 
   return (
     <div className="admin-section">
-      <h3 className="section-title">🔑 Change Password</h3>
-      <form onSubmit={handleChangePassword} className="password-form">
-        <div className="input-group">
-          <label htmlFor="currentPassword">Current Password</label>
-          <input
-            type="password"
-            id="currentPassword"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            placeholder="Enter current password"
-            required
-            autoComplete="current-password"
-          />
+      <button
+        className="section-toggle"
+        onClick={() => setShowChangePassword(!showChangePassword)}
+        aria-expanded={showChangePassword}
+        aria-controls="change-password-content"
+      >
+        <h3 className="section-title">🔑 Change Password</h3>
+        <span className={`section-chevron ${showChangePassword ? 'open' : ''}`}>▾</span>
+      </button>
+      {showChangePassword && (
+        <div id="change-password-content">
+          <form onSubmit={handleChangePassword} className="password-form">
+            <div className="input-group">
+              <label htmlFor="currentPassword">Current Password</label>
+              <input
+                type="password"
+                id="currentPassword"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Enter current password"
+                required
+                autoComplete="current-password"
+              />
+            </div>
+            <div className="input-group">
+              <label htmlFor="newPassword">New Password</label>
+              <input
+                type="password"
+                id="newPassword"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Min. 8 characters"
+                required
+                minLength={8}
+                maxLength={128}
+                autoComplete="new-password"
+              />
+            </div>
+            <div className="input-group">
+              <label htmlFor="confirmNewPassword">Confirm New Password</label>
+              <input
+                type="password"
+                id="confirmNewPassword"
+                value={confirmNewPassword}
+                onChange={(e) => setConfirmNewPassword(e.target.value)}
+                placeholder="Re-enter new password"
+                required
+                minLength={8}
+                maxLength={128}
+                autoComplete="new-password"
+              />
+            </div>
+            {passwordError && <div className="form-error">{passwordError}</div>}
+            {passwordSuccess && <div className="form-success">✓ Password changed successfully</div>}
+            <button type="submit" className="btn-primary" disabled={isChangingPassword}>
+              {isChangingPassword ? 'Changing...' : 'Change Password'}
+            </button>
+          </form>
         </div>
-        <div className="input-group">
-          <label htmlFor="newPassword">New Password</label>
-          <input
-            type="password"
-            id="newPassword"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            placeholder="Min. 8 characters"
-            required
-            minLength={8}
-            maxLength={128}
-            autoComplete="new-password"
-          />
-        </div>
-        <div className="input-group">
-          <label htmlFor="confirmNewPassword">Confirm New Password</label>
-          <input
-            type="password"
-            id="confirmNewPassword"
-            value={confirmNewPassword}
-            onChange={(e) => setConfirmNewPassword(e.target.value)}
-            placeholder="Re-enter new password"
-            required
-            minLength={8}
-            maxLength={128}
-            autoComplete="new-password"
-          />
-        </div>
-        {passwordError && <div className="form-error">{passwordError}</div>}
-        {passwordSuccess && <div className="form-success">✓ Password changed successfully</div>}
-        <button type="submit" className="btn-primary" disabled={isChangingPassword}>
-          {isChangingPassword ? 'Changing...' : 'Change Password'}
-        </button>
-      </form>
+      )}
     </div>
   );
 }

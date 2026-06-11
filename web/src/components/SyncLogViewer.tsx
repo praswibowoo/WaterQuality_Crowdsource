@@ -2,7 +2,11 @@ import { useEffect, useState } from 'react';
 import { offlineDb } from '../db/offlineDatabase';
 import type { SyncLogEntry } from '../types/offline';
 
-export default function SyncLogViewer() {
+interface SyncLogViewerProps {
+  previewMode?: boolean;
+}
+
+export default function SyncLogViewer({ previewMode = false }: SyncLogViewerProps) {
   const [logs, setLogs] = useState<SyncLogEntry[]>([]);
   const [filter, setFilter] = useState<string>('all');
 
@@ -19,14 +23,15 @@ export default function SyncLogViewer() {
           ? allLogs
           : allLogs.filter((l) => l.action === filter);
 
-        setLogs(filtered);
+        const displayLogs = previewMode ? filtered.slice(0, 10) : filtered;
+        setLogs(displayLogs);
       } catch (e) {
         console.error('Failed to load sync logs:', e);
       }
     }
 
     loadLogs();
-  }, [filter]);
+  }, [filter, previewMode]);
 
   async function clearLogs() {
     try {
@@ -48,43 +53,47 @@ export default function SyncLogViewer() {
   };
 
   return (
-    <div style={{ padding: '1rem' }}>
+    <div className={previewMode ? 'sync-log-preview' : ''}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h2>Sync Log</h2>
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            style={{
-              padding: '0.25rem 0.5rem',
-              borderRadius: '4px',
-              border: '1px solid var(--color-border)',
-            }}
-          >
-            <option value="all">All</option>
-            <option value="enqueue">Enqueue</option>
-            <option value="attempt">Attempt</option>
-            <option value="success">Success</option>
-            <option value="fail">Fail</option>
-            <option value="duplicate_detected">Duplicate</option>
-            <option value="drop">Drop</option>
-            <option value="purge">Purge</option>
-          </select>
-          <button
-            onClick={clearLogs}
-            style={{
-              padding: '0.25rem 0.75rem',
-              borderRadius: '4px',
-              border: '1px solid #ef4444',
-              background: 'white',
-              color: '#ef4444',
-              cursor: 'pointer',
-              fontSize: '0.75rem',
-            }}
-          >
-            Clear Logs
-          </button>
-        </div>
+        <h3 className="section-title">🔧 Sync Log</h3>
+        {previewMode ? (
+          <a href="/admin/debug" className="btn-tiny btn-gray">View All →</a>
+        ) : (
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              style={{
+                padding: '0.25rem 0.5rem',
+                borderRadius: '4px',
+                border: '1px solid var(--color-border)',
+              }}
+            >
+              <option value="all">All</option>
+              <option value="enqueue">Enqueue</option>
+              <option value="attempt">Attempt</option>
+              <option value="success">Success</option>
+              <option value="fail">Fail</option>
+              <option value="duplicate_detected">Duplicate</option>
+              <option value="drop">Drop</option>
+              <option value="purge">Purge</option>
+            </select>
+            <button
+              onClick={clearLogs}
+              style={{
+                padding: '0.25rem 0.75rem',
+                borderRadius: '4px',
+                border: '1px solid #ef4444',
+                background: 'white',
+                color: '#ef4444',
+                cursor: 'pointer',
+                fontSize: '0.75rem',
+              }}
+            >
+              Clear Logs
+            </button>
+          </div>
+        )}
       </div>
 
       {logs.length === 0 ? (
@@ -96,7 +105,7 @@ export default function SyncLogViewer() {
               <th style={{ padding: '0.5rem', textAlign: 'left' }}>Time</th>
               <th style={{ padding: '0.5rem', textAlign: 'left' }}>Action</th>
               <th style={{ padding: '0.5rem', textAlign: 'left' }}>Record ID</th>
-              <th style={{ padding: '0.5rem', textAlign: 'left' }}>Details</th>
+              {!previewMode && <th style={{ padding: '0.5rem', textAlign: 'left' }}>Details</th>}
             </tr>
           </thead>
           <tbody>
@@ -123,9 +132,11 @@ export default function SyncLogViewer() {
                 <td style={{ padding: '0.5rem', fontFamily: 'monospace', fontSize: '0.7rem' }}>
                   {log.recordId.substring(0, 8)}...
                 </td>
-                <td style={{ padding: '0.5rem', color: 'var(--color-text-muted)' }}>
-                  {log.details || '—'}
-                </td>
+                {!previewMode && (
+                  <td style={{ padding: '0.5rem', color: 'var(--color-text-muted)' }}>
+                    {log.details || '—'}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

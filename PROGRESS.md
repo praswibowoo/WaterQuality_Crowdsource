@@ -156,7 +156,7 @@
 | WQ-134 | Full regression testing | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | 90/90 API tests + 77/77 web tests + lint + typecheck + build all clean |
 | WQ-135 | Admin password reset from user management | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | PUT /users/:id/reset-password; admin sets new password |
 | WQ-136 | Registration rate limiting (5/15min per IP) | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | Prevent spam registrations; same rate limit as login |
-| WQ-137 | User list pagination + sorting | ✅ Done | v1.2.0 | Lead Manager | @developer | — | 2026-06-11 | Paginate user list (20/page); sort by username A→Z (toggleable); search by name/username. Spec: docs/wq-137-user-list-pagination-spec.md |
+| WQ-137 | User list pagination + sorting | 🔍 Awaiting QC | v1.2.0 | Lead Manager | @developer | — | 2026-06-11 | Paginate user list (20/page); sort by username A→Z (toggleable); search by name/username. Hotfix: modal JSX, allowlist, totalCount, collapsible sections, login history limit. Spec: docs/wq-137-user-list-pagination-spec.md |
 | WQ-138 | Kill user sessions on admin password reset | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | When admin resets password, kill all sessions for that user |
 | WQ-139 | Prevent admin self-deactivation | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | Admin UI hides deactivate button for own account |
 | WQ-140 | Generate temp password on admin user creation | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | Admin creates user → system generates random password → shown once |
@@ -245,6 +245,7 @@
 | 2026-06-08 | Lead Manager | Data consistency + code quality phases | DQC-001, DQC-002, CQ-001 to CQ-003 | safeCount for offline stats, orphaned file cleanup, zero lint warnings, zero ts-ignore |
 | 2026-06-11 | Developer | WQ-137: User list pagination + sorting | WQ-137 | Backend cursor pagination + search + sort; frontend useUsers hook, search debounced 300ms, column sort, "Load More", updated tests. 278/278 tests pass |
 | 2026-06-11 | Lead Manager | WQ-137 Hotfix: Post-implementation audit | WQ-137 | Found 7 bugs: JSX syntax errors in modals, missing allowlist, totalCount flicker. Created hotfix spec at docs/wq-137-hotfix.md. Added collapsible sections request. |
+| 2026-06-11 | Developer | WQ-137 Hotfix: Implement all 7 bug fixes | WQ-137 | Fixed modal JSX indentation, added ALLOWED_SORT_FIELDS, created useUsersCount hook, collapsible Change Password + Sync Log preview, login history limit to 5. 131/131 web + 147/147 API tests pass. |
 
 ---
 

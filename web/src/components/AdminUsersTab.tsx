@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { usersApi, type AdminUser, type UsersFilters } from '../api/users';
 import { useUsers } from '../hooks/useUsers';
+import { useUsersCount } from '../hooks/useUsersCount';
 import { useDebounce } from '../hooks/useDebounce';
 import ConfirmDialog from './ConfirmDialog';
 import { useFocusTrap } from '../hooks/useFocusTrap';
@@ -31,8 +32,9 @@ export default function AdminUsersTab() {
     isFetchingNextPage,
   } = useUsers(filters);
 
+  const { data: totalCount = 0 } = useUsersCount(filters);
+
   const users = data?.pages.flatMap((p) => p.data) ?? [];
-  const totalCount = data?.pages[0]?.totalCount ?? 0;
 
   // Create user
   const [showCreate, setShowCreate] = useState(false);
@@ -295,27 +297,28 @@ function CreateUserModal({ onClose, cName, setCName, cUsername, setCUsername, cP
     <div className="modal-overlay" onClick={onClose}>
       <div ref={containerRef} className="modal-card" role="dialog" aria-modal="true" aria-label="Create user" onClick={(e) => e.stopPropagation()} tabIndex={-1}>
         <div className="modal-hdr"><h3>Create User</h3><button className="modal-x" onClick={onClose} aria-label="Close create user dialog">×</button></div>
-            {tempPw ? (
-              <div className="temp-pw-box">
-                <p>User created successfully!</p>
-                <p className="temp-pw-label">Temporary password (share with user):</p>
-                <div className="temp-pw-val">{tempPw}</div>
-                <p className="temp-pw-note">This password will not be shown again.</p>
-                <button className="btn-primary" onClick={onClose}>Done</button>
-              </div>
-            ) : (
-              <form onSubmit={handleCreate}>
-                <div className="input-group"><label>Name</label><input type="text" value={cName} onChange={(e) => setCName(e.target.value)} placeholder="Full name" required minLength={2} /></div>
-                <div className="input-group"><label>Username</label><input type="text" value={cUsername} onChange={(e) => setCUsername(e.target.value)} placeholder="Username" required minLength={3} maxLength={30} /></div>
-                <div className="input-group"><label>Password (leave empty to generate)</label><input type="password" value={cPassword} onChange={(e) => setCPassword(e.target.value)} placeholder="Min. 8 chars" minLength={8} maxLength={128} /></div>
-                <div className="input-group"><label>Role</label><select value={cRole} onChange={(e) => setCRole(e.target.value)}><option value="user">User</option><option value="admin">Admin</option></select></div>
-                {cError && <div className="form-error">{cError}</div>}
-                <button type="submit" className="btn-primary" disabled={cLoading}>{cLoading ? 'Creating...' : 'Create User'}</button>
-              </form>
-            )}
+        {tempPw ? (
+          <div className="temp-pw-box">
+            <p>User created successfully!</p>
+            <p className="temp-pw-label">Temporary password (share with user):</p>
+            <div className="temp-pw-val">{tempPw}</div>
+            <p className="temp-pw-note">This password will not be shown again.</p>
+            <button className="btn-primary" onClick={onClose}>Done</button>
           </div>
-        </div>
-      )}
+        ) : (
+          <form onSubmit={handleCreate}>
+            <div className="input-group"><label>Name</label><input type="text" value={cName} onChange={(e) => setCName(e.target.value)} placeholder="Full name" required minLength={2} /></div>
+            <div className="input-group"><label>Username</label><input type="text" value={cUsername} onChange={(e) => setCUsername(e.target.value)} placeholder="Username" required minLength={3} maxLength={30} /></div>
+            <div className="input-group"><label>Password (leave empty to generate)</label><input type="password" value={cPassword} onChange={(e) => setCPassword(e.target.value)} placeholder="Min. 8 chars" minLength={8} maxLength={128} /></div>
+            <div className="input-group"><label>Role</label><select value={cRole} onChange={(e) => setCRole(e.target.value)}><option value="user">User</option><option value="admin">Admin</option></select></div>
+            {cError && <div className="form-error">{cError}</div>}
+            <button type="submit" className="btn-primary" disabled={cLoading}>{cLoading ? 'Creating...' : 'Create User'}</button>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function ResetPasswordModal({ resetUser, onClose, onReset, rNew, setRNew, rConfirm, setRConfirm, rError, rLoading, rSuccess }: {
   resetUser: AdminUser;
@@ -332,20 +335,20 @@ function ResetPasswordModal({ resetUser, onClose, onReset, rNew, setRNew, rConfi
     <div className="modal-overlay" onClick={onClose}>
       <div ref={containerRef} className="modal-card" role="dialog" aria-modal="true" aria-label={`Reset password for ${resetUser.username}`} onClick={(e) => e.stopPropagation()} tabIndex={-1}>
         <div className="modal-hdr"><h3>Reset Password — {resetUser.username}</h3><button className="modal-x" onClick={onClose} aria-label="Close reset password dialog">×</button></div>
-            {rSuccess ? (
-              <div className="temp-pw-box">
-                <p className="form-success" style={{ padding: '1rem', margin: 0 }}>✓ Password reset successfully</p>
-                <button className="btn-primary" onClick={onClose} style={{ marginTop: '1rem' }}>Done</button>
-              </div>
-            ) : (
-              <form onSubmit={onReset}>
-                <div className="input-group"><label>New Password</label><input type="password" value={rNew} onChange={(e) => setRNew(e.target.value)} placeholder="Min. 8 chars" required minLength={8} maxLength={128} /></div>
-                <div className="input-group"><label>Confirm</label><input type="password" value={rConfirm} onChange={(e) => setRConfirm(e.target.value)} placeholder="Re-enter" required minLength={8} maxLength={128} /></div>
-                {rError && <div className="form-error">{rError}</div>}
-                <button type="submit" className="btn-primary" disabled={rLoading}>{rLoading ? 'Resetting...' : 'Reset Password'}</button>
-              </form>
-            )}
+        {rSuccess ? (
+          <div className="temp-pw-box">
+            <p className="form-success" style={{ padding: '1rem', margin: 0 }}>✓ Password reset successfully</p>
+            <button className="btn-primary" onClick={onClose} style={{ marginTop: '1rem' }}>Done</button>
           </div>
-        </div>
-      );
+        ) : (
+          <form onSubmit={onReset}>
+            <div className="input-group"><label>New Password</label><input type="password" value={rNew} onChange={(e) => setRNew(e.target.value)} placeholder="Min. 8 chars" required minLength={8} maxLength={128} /></div>
+            <div className="input-group"><label>Confirm</label><input type="password" value={rConfirm} onChange={(e) => setRConfirm(e.target.value)} placeholder="Re-enter" required minLength={8} maxLength={128} /></div>
+            {rError && <div className="form-error">{rError}</div>}
+            <button type="submit" className="btn-primary" disabled={rLoading}>{rLoading ? 'Resetting...' : 'Reset Password'}</button>
+          </form>
+        )}
+      </div>
+    </div>
+  );
 }

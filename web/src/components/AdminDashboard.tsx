@@ -9,6 +9,7 @@ import ConfirmDialog from './ConfirmDialog';
 import AdminUsersTab from './AdminUsersTab';
 import AdminPasswordChange from './admin/AdminPasswordChange';
 import AdminLoginHistory from './admin/AdminLoginHistory';
+import SyncLogViewer from './SyncLogViewer';
 
 type StatusFilter = 'all' | 'pending' | 'approved' | 'rejected';
 type QualityScoreFilter = 'all' | 'high' | 'moderate' | 'low' | 'none';
@@ -434,11 +435,9 @@ export default function AdminDashboard() {
       {/* 🔑 Change Password Section */}
       <AdminPasswordChange />
 
-      {/* 🔧 Debug Sync */}
+      {/* 🔧 Sync Log */}
       <div className="admin-section">
-        <Link to="/admin/debug" style={{ textDecoration: 'none', color: 'var(--color-text)' }}>
-          <h3 className="section-title">🔧 Sync Log Viewer</h3>
-        </Link>
+        <SyncLogViewer previewMode={true} />
       </div>
 
       {/* 📋 Login History */}

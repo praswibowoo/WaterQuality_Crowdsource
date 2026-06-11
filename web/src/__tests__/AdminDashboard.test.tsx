@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen } from '@testing-library/react';
+import { screen, fireEvent } from '@testing-library/react';
 import { renderWithProviders, createMockSample } from './helpers/test-utils';
 
 vi.mock('../hooks/useSamples', () => ({
@@ -172,6 +172,8 @@ describe('AdminDashboard', () => {
     renderWithProviders(<AdminDashboard />);
 
     expect(screen.getByText('🔑 Change Password')).toBeInTheDocument();
+    // Password form is collapsed by default — click to expand
+    fireEvent.click(screen.getByText('🔑 Change Password'));
     expect(screen.getByPlaceholderText('Enter current password')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Min. 8 characters')).toBeInTheDocument();
   });

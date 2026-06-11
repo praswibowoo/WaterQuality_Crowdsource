@@ -6,6 +6,9 @@ import { asyncHandler, AppError } from '../middleware/errorHandler';
 import { adminMiddleware, type AuthenticatedRequest } from '../middleware/auth';
 import { createUserSchema, updateUserSchema, resetPasswordSchema, uuidParam, getUsersQuerySchema } from '../validators/schemas';
 
+// Allowed sort fields for user queries (WQ-137)
+const ALLOWED_SORT_FIELDS = ['name', 'username', 'role', 'createdAt'] as const;
+
 const router = Router();
 
 // Helper: generate cryptographically secure temporary password (WQ-160)
@@ -54,9 +57,10 @@ router.get(
       ];
     }
 
-    // Build orderBy
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic Prisma orderBy
-    const orderBy: any = { [sortBy]: sortOrder };
+    // Build orderBy with allowlist
+    const orderBy = sortBy && ALLOWED_SORT_FIELDS.includes(sortBy as typeof ALLOWED_SORT_FIELDS[number])
+      ? { [sortBy]: sortOrder }
+      : { username: 'asc' as const };
 
     const users = await prisma.userAccount.findMany({
       where,

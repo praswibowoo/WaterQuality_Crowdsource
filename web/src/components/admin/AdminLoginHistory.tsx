@@ -40,7 +40,7 @@ export default function AdminLoginHistory() {
             <p className="empty-text">No login events recorded yet.</p>
           ) : (
             <div className="history-list">
-              {loginHistory.map((entry) => (
+              {loginHistory.slice(0, 5).map((entry) => (
                 <div key={entry.id} className={`history-entry history-${entry.action}`}>
                   <span className="history-action">
                     {entry.action === 'login' ? '🔑' : entry.action === 'logout' ? '🚪' : '🔒'}

@@ -42,6 +42,11 @@ export const usersApi = {
     return response.data;
   },
 
+  async count(filters?: Omit<UsersFilters, 'cursor' | 'limit'>): Promise<number> {
+    const response = await apiClient.get<{ data: unknown[]; totalCount: number }>('/users', { params: { ...filters, limit: 1 } });
+    return response.data.totalCount;
+  },
+
   async get(id: string): Promise<{ user: AdminUser }> {
     const response = await apiClient.get<{ user: AdminUser }>(`/users/${id}`);
     return response.data;

@@ -868,7 +868,6 @@
 
 | Feature ID | Feature | Priority | Status |
 |------------|---------|----------|--------|
-| WQ-137 | User list pagination + sorting | 🟡 High | 📝 Planned |
 | WQ-152 | Migrate AdminDashboard inline styles to CSS modules | 🟢 Medium | 📝 Future Backlog |
 | WQ-153 | Migrate SampleForm inline styles to CSS modules | 🟢 Medium | 📝 Future Backlog |
 | WQ-154 | Migrate SampleMap inline styles to CSS modules | 🟢 Medium | 📝 Future Backlog |
