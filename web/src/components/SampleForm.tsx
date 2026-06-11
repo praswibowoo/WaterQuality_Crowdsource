@@ -554,7 +554,15 @@ export default function SampleForm() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
+        <form
+          onSubmit={handleSubmit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+              e.preventDefault();
+              handleSubmit(e);
+            }
+          }}
+        >
           {/* Author Name */}
           <div className="input-group">
             <label htmlFor="authorName">
@@ -914,6 +922,9 @@ export default function SampleForm() {
                 'Submit Sample'
               )}
             </button>
+            <span className="keyboard-hint">
+              Tip: Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to submit
+            </span>
           </div>
         </form>
         </>)}
@@ -1072,6 +1083,25 @@ export default function SampleForm() {
           width: 100%;
           padding: var(--spacing-md);
           font-size: 1rem;
+        }
+
+        .keyboard-hint {
+          display: block;
+          text-align: center;
+          font-size: 0.75rem;
+          color: var(--color-text-muted);
+          margin-top: var(--spacing-sm);
+        }
+
+        .keyboard-hint kbd {
+          display: inline-block;
+          padding: 0.125rem 0.375rem;
+          font-size: 0.7rem;
+          font-family: monospace;
+          background: var(--color-background);
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-sm);
+          box-shadow: 0 1px 0 var(--color-border);
         }
 
         .mb-md {

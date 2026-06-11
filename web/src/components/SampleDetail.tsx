@@ -45,6 +45,7 @@ export const SampleDetail = () => {
   const { data: locationSamples } = useLocationSamples(sample?.locationId || '');
   const [lightboxPhoto, setLightboxPhoto] = useState<{ src: string; alt: string } | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [copied, setCopied] = useState(false);
   const focusRef = useRef<HTMLButtonElement | null>(null);
 
   // Prevent body scroll when lightbox is open
@@ -144,9 +145,24 @@ export const SampleDetail = () => {
           <p>
             {sample.location?.address || 'No address provided'}
           </p>
-          <p className="sample-detail-coords">
-            {sample.location?.latitude.toFixed(6)}, {sample.location?.longitude.toFixed(6)}
-          </p>
+          <div className="sample-detail-coords-row">
+            <p className="sample-detail-coords">
+              {sample.location?.latitude.toFixed(6)}, {sample.location?.longitude.toFixed(6)}
+            </p>
+            <button
+              className="btn-copy-coords"
+              onClick={() => {
+                const coords = `${sample.location?.latitude.toFixed(6)}, ${sample.location?.longitude.toFixed(6)}`;
+                navigator.clipboard.writeText(coords).then(() => {
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                });
+              }}
+              aria-label="Copy coordinates to clipboard"
+            >
+              {copied ? '✓ Copied' : '📋 Copy'}
+            </button>
+          </div>
         </div>
 
         {/* 🌡️ Common Measurements */}
@@ -451,10 +467,35 @@ export const SampleDetail = () => {
           font-weight: 500;
         }
 
+        .sample-detail-coords-row {
+          display: flex;
+          align-items: center;
+          gap: var(--spacing-sm);
+        }
+
         .sample-detail-coords {
           font-family: monospace;
           font-size: 0.875rem;
           color: var(--color-text-muted);
+          margin: 0;
+        }
+
+        .btn-copy-coords {
+          padding: 0.25rem 0.5rem;
+          font-size: 0.75rem;
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-md);
+          background: var(--color-surface);
+          color: var(--color-text);
+          cursor: pointer;
+          transition: all 0.2s;
+          white-space: nowrap;
+        }
+
+        .btn-copy-coords:hover {
+          background: var(--color-primary);
+          color: white;
+          border-color: var(--color-primary);
         }
 
         .sample-detail-measurements {
