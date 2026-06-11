@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useSamples } from '../hooks/useSamples';
 import { samplesApi } from '../api/samples';
@@ -46,29 +46,6 @@ export default function SampleList() {
 
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
-
-  // Infinite scroll observer
-  const handleObserver = useCallback(
-    (entries: IntersectionObserverEntry[]) => {
-      const target = entries[0];
-      if (target.isIntersecting && hasNextPage && !isFetchingNextPage) {
-        fetchNextPage();
-      }
-    },
-    [hasNextPage, isFetchingNextPage, fetchNextPage]
-  );
-
-  useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el) return;
-
-    const observer = new IntersectionObserver(handleObserver, {
-      rootMargin: '200px',
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [handleObserver]);
 
   const handleExportCsv = async () => {
     setIsExporting(true);
@@ -271,20 +248,27 @@ export default function SampleList() {
         </div>
       )}
 
-      {/* Infinite scroll sentinel + progress */}
+      {/* Pagination Footer */}
       {samples.length > 0 && (
         <div className="pagination-footer">
           <div className="progress-text">
             Showing {samples.length} of {totalCount} samples
-            {isFetchingNextPage && (
-              <span className="loading-inline">
-                <span className="spinner" style={{ width: '0.8rem', height: '0.8rem', display: 'inline-block' }} />
-                {' '}Loading more...
-              </span>
-            )}
           </div>
           {hasNextPage && (
-            <div ref={sentinelRef} className="scroll-sentinel" />
+            <button
+              className="btn-load-more"
+              onClick={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+            >
+              {isFetchingNextPage ? (
+                <>
+                  <span className="spinner" style={{ width: '1rem', height: '1rem', display: 'inline-block' }} />
+                  {' '}Loading...
+                </>
+              ) : (
+                'Load More'
+              )}
+            </button>
           )}
           {!hasNextPage && samples.length >= totalCount && (
             <p className="all-loaded-text">All samples loaded</p>
@@ -611,13 +595,33 @@ export default function SampleList() {
           font-weight: 500;
         }
 
-        .scroll-sentinel {
-          height: 1px;
-        }
-
         .all-loaded-text {
           color: var(--color-text-muted);
           font-size: 0.8rem;
+        }
+
+        .btn-load-more {
+          display: inline-flex;
+          align-items: center;
+          gap: var(--spacing-xs);
+          padding: var(--spacing-sm) var(--spacing-lg);
+          background: var(--color-primary);
+          color: white;
+          border: none;
+          border-radius: var(--radius-md);
+          font-size: 0.9rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: opacity var(--transition-fast);
+        }
+
+        .btn-load-more:hover:not(:disabled) {
+          opacity: 0.9;
+        }
+
+        .btn-load-more:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
         }
 
         @media (max-width: 480px) {
