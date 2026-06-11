@@ -25,7 +25,7 @@ async function main() {
 
   let successCount = 0;
   let errorCount = 0;
-  let skipCount = 0;
+  const skipCount = 0;
 
   for (let i = 0; i < samples.length; i++) {
     const sample = samples[i];

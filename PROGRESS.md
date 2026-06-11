@@ -247,6 +247,7 @@
 | 2026-06-11 | Lead Manager | WQ-137 Hotfix: Post-implementation audit | WQ-137 | Found 7 bugs: JSX syntax errors in modals, missing allowlist, totalCount flicker. Created hotfix spec at docs/wq-137-hotfix.md. Added collapsible sections request. |
 | 2026-06-11 | Developer | WQ-137 Hotfix: Implement all 7 bug fixes | WQ-137 | Fixed modal JSX indentation, added ALLOWED_SORT_FIELDS, created useUsersCount hook, collapsible Change Password + Sync Log preview, login history limit to 5. 131/131 web + 147/147 API tests pass. |
 | 2026-06-11 | Lead Manager | Full application audit: 3 critical issues found | C1-C3 | Spatial outlier SQL bug (references missing l alias), plaintext secrets in api/.env, Docker build context mismatch. Created detailed spec at docs/critical-issues-fix.md. |
+| 2026-06-11 | Developer | Implemented critical fixes C1-C3 | C1-C3 | C1: Fixed spatial outlier SQL (added Location JOIN, removed && operator). C2: Rotated SESSION_SECRET and ADMIN_PASSWORD, verified no secrets in git history. C3: Fixed docker-compose context, improved Dockerfile (non-root user, proper healthcheck). 284/284 tests pass. |
 
 ---
 
