@@ -178,7 +178,7 @@ async function scoreSpatialOutlier(
   try {
     const neighborStats = await queryNeighborStats(
       paramName,
-      `l.geog IS NOT NULL AND l.geog && ST_DWithin(l.geog, (SELECT geog FROM "Location" WHERE id = $2), $3)`,
+      `l.geog IS NOT NULL AND ST_DWithin(l.geog, (SELECT geog FROM "Location" WHERE id = $2), $3)`,
       [sampleId, locationId, SPATIAL_RADIUS_METERS]
     );
 
