@@ -71,6 +71,7 @@ export async function queryNeighborStats(
       AVG(s.${col}::float) as mean_val,
       COALESCE(STDDEV(s.${col}::float), 0) as stddev_val
     FROM "Sample" s
+    INNER JOIN "Location" l ON s."locationId" = l.id
     WHERE ${whereClause}
       AND s.id != $1
       AND s.status = 'approved'
