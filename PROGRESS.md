@@ -156,7 +156,7 @@
 | WQ-134 | Full regression testing | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | 90/90 API tests + 77/77 web tests + lint + typecheck + build all clean |
 | WQ-135 | Admin password reset from user management | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | PUT /users/:id/reset-password; admin sets new password |
 | WQ-136 | Registration rate limiting (5/15min per IP) | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | Prevent spam registrations; same rate limit as login |
-| WQ-137 | User list pagination + sorting | 📝 Planned | v1.2.0 | Lead Manager | — | — | — | Paginate user list; sort by name/username/role/date. Spec: docs/wq-137-user-list-pagination-sorting-spec.md |
+| WQ-137 | User list pagination + sorting | 🔄 In Progress | v1.2.0 | Lead Manager | — | — | — | Paginate user list (20/page); sort by username A→Z (toggleable); search by name/username. Spec: docs/wq-137-user-list-pagination-spec.md |
 | WQ-138 | Kill user sessions on admin password reset | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | When admin resets password, kill all sessions for that user |
 | WQ-139 | Prevent admin self-deactivation | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | Admin UI hides deactivate button for own account |
 | WQ-140 | Generate temp password on admin user creation | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | Admin creates user → system generates random password → shown once |
