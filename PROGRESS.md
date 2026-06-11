@@ -244,6 +244,7 @@
 | 2026-06-08 | Lead Manager | Security hardening phase | SEC-001, SEC-002 | Auth middleware on POST /locations, session regeneration safety timeout |
 | 2026-06-08 | Lead Manager | Data consistency + code quality phases | DQC-001, DQC-002, CQ-001 to CQ-003 | safeCount for offline stats, orphaned file cleanup, zero lint warnings, zero ts-ignore |
 | 2026-06-11 | Developer | WQ-137: User list pagination + sorting | WQ-137 | Backend cursor pagination + search + sort; frontend useUsers hook, search debounced 300ms, column sort, "Load More", updated tests. 278/278 tests pass |
+| 2026-06-11 | Lead Manager | WQ-137 Hotfix: Post-implementation audit | WQ-137 | Found 7 bugs: JSX syntax errors in modals, missing allowlist, totalCount flicker. Created hotfix spec at docs/wq-137-hotfix.md. Added collapsible sections request. |
 
 ---
 
