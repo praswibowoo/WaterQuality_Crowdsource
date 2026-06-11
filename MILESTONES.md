@@ -147,7 +147,7 @@
 
 | Exit Criteria | Status |
 |--------------|--------|
-| Admin login works with username "admin" and password "admin123" | ✅ Verified |
+| Admin login works with admin credentials (password set via ADMIN_PASSWORD env var) | ✅ Verified |
 | httpOnly cookie session stored and sent on protected requests | ✅ Verified *(Migrated from JWT in WQ-061)* |
 | Unauthenticated users redirected to `/admin/login` when accessing `/admin` | ✅ Verified |
 | Admin can delete samples with `approved` or `rejected` status | ✅ Verified |
@@ -682,7 +682,7 @@
 | Concurrent location creation produces no duplicates (transactional) | ✅ Done |
 | Export rate limited to 10 req/min | ✅ Done |
 | Temp passwords use crypto.randomInt | ✅ Done |
-| All 275 existing tests pass | ✅ Done |
+| All 278 existing tests pass | ✅ Done |
 
 ---
 
@@ -725,7 +725,7 @@
 | All interactive elements have visible focus indicators | ✅ Done |
 | Admin tabs properly labeled for screen readers | ✅ Done |
 | Focus returns to trigger element after modal close | ✅ Done |
-| All 275 existing tests pass | ✅ Done |
+| All 278 existing tests pass | ✅ Done |
 
 ---
 
@@ -808,7 +808,7 @@
 | Quality scoring has unit tests for all 6 factors | ✅ Done |
 | CSP middleware tested | ✅ Done |
 | AdminUsersTab, TrendChart, useFocusTrap have component tests | ✅ Done |
-| Total test count: 275 (147 API + 128 web) | ✅ Done |
+| Total test count: 278 (147 API + 131 web) | ✅ Done |
 
 ---
 
@@ -847,27 +847,13 @@
 
 ---
 
-## Future: AI Analysis 📝 Planned
-
-**Goal**: Scope and implement the AI microservice and spatial analysis for water quality.
+## Future Backlog 📝 Planned
 
 | Feature ID | Feature | Priority | Status |
 |------------|---------|----------|--------|
 | WQ-071 | AI Analysis microservice skeleton | 🟢 Medium | 📝 Planned |
 | WQ-109 | Spatial Interpolation Heatmap (IDW) | 🟡 High | 📝 Planned |
 | WQ-110 | ML Prediction Engine (Random Forest/XGBoost) | 🟢 Medium | 📝 Future Backlog |
-
-**Notes:**
-- WQ-071 deferred until concrete AI model/requirements defined by research team
-- WQ-109 has spec at `docs/wq-109-spatial-interpolation-heatmap-spec.md`
-- WQ-110 deferred until ≥200 samples collected
-
----
-
-## Future Backlog 📝 Planned
-
-| Feature ID | Feature | Priority | Status |
-|------------|---------|----------|--------|
 | WQ-152 | Migrate AdminDashboard inline styles to CSS modules | 🟢 Medium | 📝 Future Backlog |
 | WQ-153 | Migrate SampleForm inline styles to CSS modules | 🟢 Medium | 📝 Future Backlog |
 | WQ-154 | Migrate SampleMap inline styles to CSS modules | 🟢 Medium | 📝 Future Backlog |
@@ -876,9 +862,14 @@
 | WQ-197 | Dark mode support | 🟢 Medium | 📝 Future Backlog |
 | WQ-198 | Offline data export/backup | 🟢 Medium | 📝 Future Backlog |
 | WQ-199 | Sample data audit trail | 🟢 Medium | 📝 Future Backlog |
-| WQ-200 | Copy coordinates button | 🟢 Low | 📝 Future Backlog |
-| WQ-201 | Keyboard shortcut for form submit (Ctrl+Enter) | 🟢 Low | 📝 Future Backlog |
+| WQ-200 | Copy coordinates button | 🟢 Low | ✅ Done |
+| WQ-201 | Keyboard shortcut for form submit (Ctrl+Enter) | 🟢 Low | ✅ Done |
 | WQ-202 | Search on map page | 🟢 Low | 📝 Future Backlog |
+
+**Notes:**
+- WQ-071 deferred until concrete AI model/requirements defined by research team
+- WQ-109 has spec at `docs/wq-109-spatial-interpolation-heatmap-spec.md`
+- WQ-110 deferred until ≥200 samples collected
 
 ---
 

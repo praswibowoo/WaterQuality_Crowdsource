@@ -156,7 +156,7 @@
 | WQ-134 | Full regression testing | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | 90/90 API tests + 77/77 web tests + lint + typecheck + build all clean |
 | WQ-135 | Admin password reset from user management | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | PUT /users/:id/reset-password; admin sets new password |
 | WQ-136 | Registration rate limiting (5/15min per IP) | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | Prevent spam registrations; same rate limit as login |
-| WQ-137 | User list pagination + sorting | 🔍 Awaiting QC | v1.2.0 | Lead Manager | @developer | — | 2026-06-11 | Paginate user list (20/page); sort by username A→Z (toggleable); search by name/username. Hotfix: modal JSX, allowlist, totalCount, collapsible sections, login history limit. Spec: docs/wq-137-user-list-pagination-spec.md |
+| WQ-137 | User list pagination + sorting | ✅ Done | v1.2.0 | Lead Manager | @developer | — | 2026-06-11 | Paginate user list (20/page); sort by username A→Z (toggleable); search by name/username. Hotfix: modal JSX, allowlist, totalCount, collapsible sections, login history limit. Spec: docs/wq-137-user-list-pagination-spec.md |
 | WQ-138 | Kill user sessions on admin password reset | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | When admin resets password, kill all sessions for that user |
 | WQ-139 | Prevent admin self-deactivation | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | Admin UI hides deactivate button for own account |
 | WQ-140 | Generate temp password on admin user creation | ✅ Done | v1.2.0 | Lead Manager | @lead-manager | — | — | Admin creates user → system generates random password → shown once |
@@ -219,8 +219,8 @@
 | WQ-197 | Dark mode support | 📝 Future Backlog | Future | — | — | — | — | CSS custom properties + prefers-color-scheme |
 | WQ-198 | Offline data export/backup | 📝 Future Backlog | Future | — | — | — | — | Export pending offline submissions |
 | WQ-199 | Sample data audit trail | 📝 Future Backlog | Future | — | — | — | — | Track who changed what and when |
-| WQ-200 | Copy coordinates button | 📝 Future Backlog | Future | — | — | — | — | One-click clipboard copy in SampleDetail |
-| WQ-201 | Keyboard shortcut for form submit (Ctrl+Enter) | 📝 Future Backlog | Future | — | — | — | — | Rapid field data entry |
+| WQ-200 | Copy coordinates button | ✅ Done | Future | Lead Manager | @lead-manager | — | 2026-06-11 | One-click clipboard copy in SampleDetail |
+| WQ-201 | Keyboard shortcut for form submit (Ctrl+Enter) | ✅ Done | Future | Lead Manager | @lead-manager | — | 2026-06-11 | Rapid field data entry |
 | WQ-202 | Search on map page | 📝 Future Backlog | Future | — | — | — | — | Search by author, parameter, or date from map view |
 
 ---
@@ -248,6 +248,7 @@
 | 2026-06-11 | Developer | WQ-137 Hotfix: Implement all 7 bug fixes | WQ-137 | Fixed modal JSX indentation, added ALLOWED_SORT_FIELDS, created useUsersCount hook, collapsible Change Password + Sync Log preview, login history limit to 5. 131/131 web + 147/147 API tests pass. |
 | 2026-06-11 | Lead Manager | Full application audit: 3 critical issues found | C1-C3 | Spatial outlier SQL bug (references missing l alias), plaintext secrets in api/.env, Docker build context mismatch. Created detailed spec at docs/critical-issues-fix.md. |
 | 2026-06-11 | Developer | Implemented critical fixes C1-C3 | C1-C3 | C1: Fixed spatial outlier SQL (added Location JOIN, removed && operator). C2: Rotated SESSION_SECRET and ADMIN_PASSWORD, verified no secrets in git history. C3: Fixed docker-compose context, improved Dockerfile (non-root user, proper healthcheck). 284/284 tests pass. |
+| 2026-06-11 | Developer | WQ-200/WQ-201 quick wins | WQ-200, WQ-201 | Copy coordinates button + Ctrl+Enter submit. 131/131 tests pass. |
 
 ---
 
@@ -265,13 +266,23 @@ water-quality-crowdsource/
 
 ### Database Schema (Prisma)
 - **Location**: id, latitude, longitude, geography(Point, 4326) (PostGIS), address, relation to samples
-- **Sample**: id, authorName, locationId, ph, temperature, conductivity, salinity, nitrate, calcium, potassium, sodium, notes, status (pending/approved/rejected)
+- **Sample**: id, authorName, locationId, ph, temperature, conductivity, salinity, nitrate, calcium, potassium, sodium, notes, status (pending/approved/rejected), userId, qualityScore, createdAt, updatedAt
   - Current fields (v0.7.0): pH, temperature (°C), conductivity (µS/cm), salinity (‰), nitrate (mg/L), calcium (mg/L), potassium (mg/L), sodium (mg/L)
   - All measurement fields are nullable (Float?) to maintain backward compatibility
   - ISE (Ion Selective Electrode) fields added for Laquatwin horiba meters
   - Metadata tags (v0.8.0): `waterBodyType` (10 options), `landUse` (14 options), `gpsAccuracy` (meters)
+  - Data quality: `qualityScore` (Float, nullable, 0-1 range)
 
-Note: User model removed in favor of anonymous crowdsourcing (authorName field)
+- **UserAccount**: id, username, name, password (bcrypt), role (user/admin), active (boolean), createdAt, updatedAt
+  - Self-registration (v1.2.0, WQ-122)
+  - Soft delete via `active` flag
+  - Pre-existing anonymous samples remain viewable (backward compatible)
+
+- **Session**: sid (PK), sess (JSON), expiredAt (Timestamp)
+  - Used by express-session + connect-pg-simple
+
+- **LoginLog**: id, userId, action (login/logout/password_change), ipAddress, userAgent, createdAt
+  - Audit trail for authentication events
 
 ### API Endpoints
 - `GET /health` — Health check with PostGIS + DB + sessions status
@@ -290,6 +301,16 @@ Note: User model removed in favor of anonymous crowdsourcing (authorName field)
 - `GET /api/v1/locations/:id` — Get location with samples
 - `GET /api/v1/locations/nearby` — Radius search locations (PostGIS ST_DWithin)
 - `GET /api/v1/samples/nearby` — Radius search samples with distance
+- `POST /api/v1/auth/login` — Login (httpOnly cookie)
+- `POST /api/v1/auth/logout` — Logout
+- `GET /api/v1/auth/me` — Current user
+- `POST /api/v1/auth/register` — Self-registration
+- `POST /api/v1/auth/change-password` — Change password
+- `GET /api/v1/auth/login-history` — Login history
+- `GET /api/v1/users` — List users (admin, paginated)
+- `POST /api/v1/users` — Create user (admin)
+- `PUT /api/v1/users/:id` — Update user (admin)
+- `PUT /api/v1/users/:id/reset-password` — Reset password (admin)
 
 ### Environment Variables
 - `VITE_API_BASE_URL`, `VITE_MAP_TILE_URL`, `VITE_DEFAULT_LAT`, `VITE_DEFAULT_LNG` (frontend)
@@ -310,7 +331,7 @@ Note: User model removed in favor of anonymous crowdsourcing (authorName field)
 - `npm run lint`: ✅ Pass
 - `npm run typecheck`: ✅ Pass
 - `npm run build`: ✅ Pass
-- `npm run test`: ✅ 147/147 tests pass
+- `npm run test`: ✅ 147/147 tests pass (total: 278)
 
 ### Milestone 14 (v1.3.1 Security Hardening)
 - WQ-155: CSP nonce-based (removed `'unsafe-inline'` from scriptSrc)
@@ -376,10 +397,6 @@ Note: User model removed in favor of anonymous crowdsourcing (authorName field)
 - CQ-001: Verified zero lint warnings across both workspaces
 - CQ-002: Verified zero ts-ignore/ts-expect-error comments
 - CQ-003: Verified no unused imports/exports across codebase
-
-### Low Optimization Cleanup
-- OPT-001: Removed stale WQ-180 spec reference from PROGRESS.md
-- Deleted 7 completed fix-phase plan files from docs/
 
 ### Critical Stability Fixes
 - BUG-001: Fixed NearbySamplesPanel response envelope access (was always empty)
