@@ -24,10 +24,10 @@ router.get('/', async (_req: Request, res: Response) => {
     await prisma.$queryRaw`SELECT COUNT(*) FROM "session"`;
     checks.sessions = 'up';
   } catch {
-    checks.sessions = 'not initialized';
+    checks.sessions = 'down';
   }
 
-  const allUp = checks.database === 'up' && checks.postgis === 'up';
+  const allUp = checks.database === 'up' && checks.postgis === 'up' && checks.sessions === 'up';
 
   res.status(allUp ? 200 : 503).json({
     status: allUp ? 'ok' : 'degraded',

@@ -222,6 +222,12 @@
 | WQ-200 | Copy coordinates button | ✅ Done | Future | Lead Manager | @lead-manager | — | 2026-06-11 | One-click clipboard copy in SampleDetail |
 | WQ-201 | Keyboard shortcut for form submit (Ctrl+Enter) | ✅ Done | Future | Lead Manager | @lead-manager | — | 2026-06-11 | Rapid field data entry |
 | WQ-202 | Search on map page | 📝 Future Backlog | Future | — | — | — | — | Search by author, parameter, or date from map view |
+| WQ-203 | Fix `/health` returning 200 when sessions table is broken | ✅ Done | Hotfix v1.5.1 | Lead Manager | @lead-manager | — | — | Regression of WQ-141; sessions check excluded from allUp. Spec: docs/hotfix-v1.5.1-spec.md |
+| WQ-204 | Replace `x-forwarded-for` parsing with `req.ip` (audit log integrity) | ✅ Done | Hotfix v1.5.1 | Lead Manager | @lead-manager | — | — | Spoofable IP in LoginLog when TRUST_PROXY=false. Spec: docs/hotfix-v1.5.1-spec.md |
+| WQ-205 | Dedupe `POST /api/v1/locations` via PostGIS proximity (10m) | ✅ Done | Hotfix v1.5.1 | Lead Manager | @lead-manager | — | — | Endpoint bypasses dedup invariant. Spec: docs/hotfix-v1.5.1-spec.md |
+| WQ-206 | Cap CSV export at 50,000 rows + overflow header | ✅ Done | Hotfix v1.5.1 | Lead Manager | @lead-manager | — | — | OOM risk on unbounded findMany. Spec: docs/hotfix-v1.5.1-spec.md |
+| WQ-207 | Unify bcrypt cost factor at 12 across all hash sites | ✅ Done | Hotfix v1.5.1 | Lead Manager | @lead-manager | — | — | Mixed costs 10/12 across 5 sites. Spec: docs/hotfix-v1.5.1-spec.md |
+| WQ-208 | WQ-200 copy-coords: fallback + error handling | ✅ Done | Hotfix v1.5.1 | Lead Manager | @lead-manager | — | — | Crashes on HTTP/file:// (navigator.clipboard undefined). Spec: docs/hotfix-v1.5.1-spec.md |
 
 ---
 
@@ -249,6 +255,8 @@
 | 2026-06-11 | Lead Manager | Full application audit: 3 critical issues found | C1-C3 | Spatial outlier SQL bug (references missing l alias), plaintext secrets in api/.env, Docker build context mismatch. Created detailed spec at docs/critical-issues-fix.md. |
 | 2026-06-11 | Developer | Implemented critical fixes C1-C3 | C1-C3 | C1: Fixed spatial outlier SQL (added Location JOIN, removed && operator). C2: Rotated SESSION_SECRET and ADMIN_PASSWORD, verified no secrets in git history. C3: Fixed docker-compose context, improved Dockerfile (non-root user, proper healthcheck). 284/284 tests pass. |
 | 2026-06-11 | Developer | WQ-200/WQ-201 quick wins | WQ-200, WQ-201 | Copy coordinates button + Ctrl+Enter submit. 131/131 tests pass. |
+| 2026-06-13 | Lead Manager | Deep security + correctness audit (18 findings) | H1–H5, M1–M8, L1–L5 | Full codebase audit: 5 High, 8 Medium, 5 Low. No Blocker-severity bugs. Created Hotfix v1.5.1 spec at docs/hotfix-v1.5.1-spec.md. Registered WQ-203 to WQ-208. |
+| 2026-06-13 | Lead Manager | Implemented Hotfix v1.5.1 | WQ-203 to WQ-208 | Fixed 6 issues: health check, IP spoofing, location dedup, CSV export cap, bcrypt cost, clipboard fallback. 284/284 tests pass. |
 
 ---
 
@@ -331,7 +339,7 @@ water-quality-crowdsource/
 - `npm run lint`: ✅ Pass
 - `npm run typecheck`: ✅ Pass
 - `npm run build`: ✅ Pass
-- `npm run test`: ✅ 147/147 tests pass (total: 278)
+- `npm run test`: ✅ 153/153 tests pass (total: 284)
 
 ### Milestone 14 (v1.3.1 Security Hardening)
 - WQ-155: CSP nonce-based (removed `'unsafe-inline'` from scriptSrc)

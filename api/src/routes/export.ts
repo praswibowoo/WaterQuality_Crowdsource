@@ -6,6 +6,9 @@ import { authMiddleware, type AuthenticatedRequest } from '../middleware/auth';
 
 const router = Router();
 
+// Maximum rows to export to prevent OOM on large datasets (WQ-206)
+const MAX_EXPORT_ROWS = 50000;
+
 // Export-specific rate limiter: 10 requests per minute per user (WQ-159)
 const exportLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -37,6 +40,9 @@ router.get(
       where.status = status;
     }
 
+    // Get total count before capping (for overflow header)
+    const totalCount = await prisma.sample.count({ where });
+
     const samples = await prisma.sample.findMany({
       where,
       include: {
@@ -45,6 +51,7 @@ router.get(
       orderBy: {
         createdAt: 'desc',
       },
+      take: MAX_EXPORT_ROWS,
     });
 
     // CSV header row
@@ -111,6 +118,13 @@ router.get(
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    // Add overflow headers if capped (WQ-206)
+    if (totalCount > MAX_EXPORT_ROWS) {
+      res.setHeader('X-Export-Truncated', 'true');
+      res.setHeader('X-Export-Total-Available', totalCount.toString());
+    }
+
     res.send(csvBuffer);
   })
 );

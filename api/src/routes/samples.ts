@@ -5,6 +5,7 @@ import prisma from '../db/prisma';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
 import { authMiddleware, type AuthenticatedRequest } from '../middleware/auth';
 import { recalculateScore } from '../services/qualityScoring';
+import { findOrCreateLocation } from '../services/locationService';
 import {
   createSampleSchema,
   updateSampleSchema,
@@ -14,56 +15,6 @@ import {
 } from '../validators/schemas';
 
 const router = Router();
-
-// Location deduplication radius in meters
-const LOCATION_DEDUP_RADIUS_METERS = 10;
-
-/**
- * Find or create a location within a proximity radius using PostGIS ST_DWithin.
- * Wrapped in a database transaction to prevent race conditions (WQ-158).
- */
-async function findOrCreateLocation(
-  lat: number,
-  lng: number,
-  address?: string
-) {
-  return await prisma.$transaction(async (tx) => {
-    // Try to find an existing location within the radius using PostGIS
-    const existing = await tx.$queryRaw<Array<{ id: string }>>`
-      SELECT id FROM "Location"
-      WHERE ST_DWithin(
-        geog,
-        ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
-        ${LOCATION_DEDUP_RADIUS_METERS}
-      )
-      LIMIT 1
-      FOR UPDATE
-    `;
-
-    if (existing.length > 0) {
-      const found = await tx.location.findUnique({ where: { id: existing[0].id } });
-      if (found) return found;
-    }
-
-    // Create a new location within the same transaction — prevents race conditions
-    const location = await tx.location.create({
-      data: { latitude: lat, longitude: lng, address },
-    });
-
-    // Set geography column for PostGIS
-    try {
-      await tx.$executeRaw`
-        UPDATE "Location"
-        SET geog = ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography
-        WHERE id = ${location.id} AND geog IS NULL
-      `;
-    } catch (e) {
-      console.warn('Failed to set geography for new location:', e);
-    }
-
-    return location;
-  });
-}
 
 // Allowed sort fields to prevent injection
 const ALLOWED_SORT_FIELDS = [
@@ -350,7 +301,7 @@ router.post(
     const { location: locationData, conductivity, salinity, nitrate, calcium, potassium, sodium, waterBodyType, landUse, gpsAccuracy, ...sampleData } = bodyResult.data;
 
     // Find or create the location (deduplication within 10m radius)
-    const location = await findOrCreateLocation(
+    const { location } = await findOrCreateLocation(
       locationData.latitude,
       locationData.longitude,
       locationData.address

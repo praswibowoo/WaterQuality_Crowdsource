@@ -5,6 +5,7 @@ import prisma from '../db/prisma';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
 import { adminMiddleware, type AuthenticatedRequest } from '../middleware/auth';
 import { createUserSchema, updateUserSchema, resetPasswordSchema, uuidParam, getUsersQuerySchema } from '../validators/schemas';
+import { BCRYPT_COST } from '../constants';
 
 // Allowed sort fields for user queries (WQ-137)
 const ALLOWED_SORT_FIELDS = ['name', 'username', 'role', 'createdAt'] as const;
@@ -156,7 +157,7 @@ router.post(
 
     // Generate temp password if not provided (WQ-140)
     const finalPassword = password || generateTempPassword();
-    const hashedPassword = await bcrypt.hash(finalPassword, 12);
+    const hashedPassword = await bcrypt.hash(finalPassword, BCRYPT_COST);
     const isTempPassword = !password;
 
     const user = await prisma.userAccount.create({
@@ -285,7 +286,7 @@ router.put(
     }
 
     // Hash new password
-    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    const hashedPassword = await bcrypt.hash(newPassword, BCRYPT_COST);
 
     // Update password
     await prisma.userAccount.update({
@@ -297,9 +298,7 @@ router.put(
     await killUserSessions(id);
 
     // M1: Log the password reset event
-    const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
-      || req.socket.remoteAddress
-      || null;
+    const ipAddress = req.ip || null;
     const userAgent = req.headers['user-agent'] || null;
     await prisma.loginLog.create({
       data: { userId: id, action: 'password_change', ipAddress, userAgent },

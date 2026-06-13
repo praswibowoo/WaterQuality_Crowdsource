@@ -843,7 +843,49 @@
 |----------|--------|
 | docker-compose up starts full stack | ✅ Done |
 | GitHub Actions CI runs on every push | ✅ Done |
-| Startup validates all required env vars | ✅ Done
+| Startup validates all required env vars | ✅ Done |
+
+---
+
+## Hotfix v1.5.1: Post-Audit Security & Reliability ✅ Done
+
+**Goal**: Close 6 issues surfaced by the 2026-06-13 deep audit. Five are server-side correctness/security holes; one is a frontend regression in the WQ-200 copy-coords button. All small, isolated, and targeted at the next public deployment. No schema migrations.
+
+**User Approved Decisions:**
+- Option A chosen for WQ-205: extract `findOrCreateLocation` to shared module, reuse in both `samples.ts` and `locations.ts`
+- `MAX_EXPORT_ROWS = 50000` for WQ-206
+- Bcrypt cost 12 for WQ-207
+- Error label "Copy failed" for WQ-208
+
+### Phase A: Critical Security & Correctness
+
+| Feature ID | Feature | Priority | Status |
+|------------|---------|----------|--------|
+| WQ-203 | Fix `/health` returning 200 when `session` table is broken | 🔴 Blocker | ✅ Done |
+| WQ-204 | Replace `x-forwarded-for` parsing with `req.ip` (audit log integrity) | 🔴 Blocker | ✅ Done |
+| WQ-205 | Dedupe `POST /api/v1/locations` via PostGIS proximity (10m) | 🔴 Blocker | ✅ Done |
+| WQ-206 | Cap CSV export at 50,000 rows + overflow header | 🔴 Blocker | ✅ Done |
+
+### Phase B: Hardening & Polish
+
+| Feature ID | Feature | Priority | Status |
+|------------|---------|----------|--------|
+| WQ-207 | Unify bcrypt cost factor at 12 across all hash sites | 🟡 High | ✅ Done |
+| WQ-208 | WQ-200 copy-coords: fallback + error handling | 🟡 High | ✅ Done |
+
+**Exit Criteria**
+| Criteria | Status |
+|----------|--------|
+| `/health` returns 503 when sessions table query throws | ✅ Done |
+| `LoginLog.ipAddress` is `req.ip` (not spoofable header) | ✅ Done |
+| Production startup warns when `TRUST_PROXY!=='true'` | ✅ Done |
+| `POST /api/v1/locations` respects 10m dedup invariant | ✅ Done |
+| CSV export caps at 50,000 rows + sets `X-Export-Truncated` header on overflow | ✅ Done |
+| All 5 bcrypt sites use shared `BCRYPT_COST = 12` constant | ✅ Done |
+| Copy coords button has `execCommand` fallback + visible error state on failure | ✅ Done |
+| No unhandled promise rejection on copy in any environment | ✅ Done |
+| All 284 tests pass (153 API + 131 web) | ✅ Done |
+| `npm run lint && npm run typecheck && npm run build` clean in both workspaces | ✅ Done |
 
 ---
 

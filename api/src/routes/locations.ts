@@ -2,11 +2,13 @@ import { Router, Request, Response } from 'express';
 import prisma from '../db/prisma';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
 import { authMiddleware } from '../middleware/auth';
+import { findOrCreateLocation } from '../services/locationService';
 import { createLocationSchema, uuidParam } from '../validators/schemas';
 
 const router = Router();
 
 // POST /api/v1/locations - Create new location (auth required — SEC-001)
+// Uses PostGIS proximity dedup (10m radius) to prevent duplicates (WQ-205)
 router.post(
   '/',
   authMiddleware,
@@ -18,26 +20,9 @@ router.post(
 
     const { latitude, longitude, address } = bodyResult.data;
 
-    const location = await prisma.location.create({
-      data: {
-        latitude,
-        longitude,
-        address,
-      },
-    });
+    const { location, created } = await findOrCreateLocation(latitude, longitude, address);
 
-    // Set geography column for PostGIS spatial queries
-    try {
-      await prisma.$executeRaw`
-        UPDATE "Location"
-        SET geog = ST_SetSRID(ST_MakePoint(${longitude}, ${latitude}), 4326)::geography
-        WHERE id = ${location.id} AND geog IS NULL
-      `;
-    } catch (e) {
-      console.warn('Failed to set geography for new location:', e);
-    }
-
-    res.status(201).json(location);
+    res.status(created ? 201 : 200).json({ location, created });
   })
 );
 

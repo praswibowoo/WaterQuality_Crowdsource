@@ -4,6 +4,7 @@ import prisma from '../db/prisma';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
 import { authMiddleware, type AuthenticatedRequest } from '../middleware/auth';
 import { loginSchema, changePasswordSchema, registerSchema } from '../validators/schemas';
+import { BCRYPT_COST } from '../constants';
 
 const router = Router();
 
@@ -27,7 +28,7 @@ router.post(
       throw new AppError('Username already taken', 409);
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, BCRYPT_COST);
 
     const user = await prisma.userAccount.create({
       data: {
@@ -87,9 +88,7 @@ async function logLoginEvent(
   action: 'login' | 'logout' | 'password_change' | 'registration',
   req: Request
 ) {
-  const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
-    || req.socket.remoteAddress
-    || null;
+  const ipAddress = req.ip || null;
   const userAgent = req.headers['user-agent'] || null;
 
   await prisma.loginLog.create({
@@ -284,7 +283,7 @@ router.post(
     }
 
     // Hash new password
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await bcrypt.hash(newPassword, BCRYPT_COST);
 
     // Update password
     await prisma.userAccount.update({

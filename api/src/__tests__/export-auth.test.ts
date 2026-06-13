@@ -9,6 +9,7 @@ const TEST_ADMIN_ID = '00000000-0000-0000-0000-000000000002';
 const mockPrisma = {
   sample: {
     findMany: jest.fn<any>(),
+    count: jest.fn<any>(),
   },
   userAccount: {
     findUnique: jest.fn<any>(),
@@ -45,6 +46,7 @@ function createApp(sessionData?: Record<string, unknown>) {
 
 beforeEach(async () => {
   jest.clearAllMocks();
+  mockPrisma.sample.count.mockResolvedValue(0);
   exportRouter = (await import('../routes/export')).default;
 });
 

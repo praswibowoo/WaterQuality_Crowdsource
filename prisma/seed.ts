@@ -2,6 +2,7 @@ import { PrismaClient, Status } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
+import { BCRYPT_COST } from '../api/src/constants';
 
 // Load env from api/.env (seed runs from prisma/ dir)
 try {
@@ -158,7 +159,7 @@ async function main() {
   if (adminPassword.length < 8) {
     throw new Error('ADMIN_PASSWORD must be at least 8 characters');
   }
-  const hashedAdminPassword = bcrypt.hashSync(adminPassword, 10);
+  const hashedAdminPassword = await bcrypt.hash(adminPassword, BCRYPT_COST);
 
   await prisma.userAccount.upsert({
     where: { username: 'admin' },

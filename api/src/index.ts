@@ -51,6 +51,8 @@ if (!fs.existsSync(uploadsDir)) {
 const trustProxyEnabled = process.env.TRUST_PROXY === 'true';
 if (trustProxyEnabled) {
   app.set('trust proxy', 1);
+} else if (process.env.NODE_ENV === 'production') {
+  console.warn('WARNING: TRUST_PROXY is not set to "true". LoginLog.ipAddress will show the raw socket peer instead of the real client IP behind the reverse proxy. Set TRUST_PROXY=true in production.');
 }
 
 // CORS configuration - fail-closed if env var missing
