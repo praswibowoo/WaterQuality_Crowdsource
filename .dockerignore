@@ -1,0 +1,12 @@
+.git
+node_modules
+.env
+.env.*
+!.env.example
+dist
+build
+uploads
+*.log
+.DS_Store
+.codegraph
+.opencode
