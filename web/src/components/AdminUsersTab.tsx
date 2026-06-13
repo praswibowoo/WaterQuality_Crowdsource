@@ -5,7 +5,7 @@ import { useUsers } from '../hooks/useUsers';
 import { useUsersCount } from '../hooks/useUsersCount';
 import { useDebounce } from '../hooks/useDebounce';
 import { useAuth } from '../contexts/AuthContext';
-import { copyToClipboard } from '../utils/clipboard';
+import CopyButton from './CopyButton';
 import ConfirmDialog from './ConfirmDialog';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
@@ -54,7 +54,6 @@ export default function AdminUsersTab() {
   const [rTempPassword, setRTempPassword] = useState<string | null>(null);
   const [rError, setRError] = useState<string | null>(null);
   const [rLoading, setRLoading] = useState(false);
-  const [rCopied, setRCopied] = useState(false);
 
   // Inline feedback
   const [toggleSuccess, setToggleSuccess] = useState<string | null>(null);
@@ -235,7 +234,7 @@ export default function AdminUsersTab() {
                     <td className="user-actions">
                       {u.role === 'admin' ? (
                         u.id !== currentUser?.id && (
-                          <button className="btn-tiny btn-green" onClick={() => setResetUser(u)} aria-label={`Reset password for ${u.username}`}>🔑 Password Reset Requests</button>
+                          <button className="btn-tiny btn-green" onClick={() => setResetUser(u)} aria-label={`Reset password for ${u.username}`} title="Password Reset">🔑 Reset</button>
                         )
                       ) : (
                         <>
@@ -243,7 +242,7 @@ export default function AdminUsersTab() {
                             ? <button className="btn-tiny btn-amber" onClick={() => handleToggleActive(u)} aria-label={`Deactivate ${u.username}`}>❌ Deactivate</button>
                             : <button className="btn-tiny btn-green" onClick={() => handleToggleActive(u)} aria-label={`Reactivate ${u.username}`}>✅ Reactivate</button>}
                           {u.id !== currentUser?.id && (
-                            <button className="btn-tiny btn-gray" onClick={() => setResetUser(u)} aria-label={`Reset password for ${u.username}`}>🔑 Password Reset Requests</button>
+                            <button className="btn-tiny btn-gray" onClick={() => setResetUser(u)} aria-label={`Reset password for ${u.username}`} title="Password Reset">🔑 Reset</button>
                           )}
                         </>
                       )}
@@ -289,14 +288,11 @@ export default function AdminUsersTab() {
             setResetUser(null);
             setRTempPassword(null);
             setRError(null);
-            setRCopied(false);
           }}
           onConfirmReset={handleConfirmReset}
           rTempPassword={rTempPassword}
           rLoading={rLoading}
           rError={rError}
-          rCopied={rCopied}
-          setRCopied={setRCopied}
         />
       )}
     </div>
@@ -342,15 +338,13 @@ function CreateUserModal({ onClose, cName, setCName, cUsername, setCUsername, cP
   );
 }
 
-function ResetPasswordModal({ resetUser, onClose, onConfirmReset, rTempPassword, rLoading, rError, rCopied, setRCopied }: {
+function ResetPasswordModal({ resetUser, onClose, onConfirmReset, rTempPassword, rLoading, rError }: {
   resetUser: AdminUser;
   onClose: () => void;
   onConfirmReset: () => void;
   rTempPassword: string | null;
   rLoading: boolean;
   rError: string | null;
-  rCopied: boolean;
-  setRCopied: (v: boolean) => void;
 }) {
   const containerRef = useFocusTrap(true, onClose);
   return (
@@ -366,9 +360,7 @@ function ResetPasswordModal({ resetUser, onClose, onConfirmReset, rTempPassword,
             <p className="temp-pw-label">New password (share with user):</p>
             <div className="temp-pw-val">{rTempPassword}</div>
             <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-              <button className="btn-primary" onClick={async () => { const ok = await copyToClipboard(rTempPassword); if (ok) { setRCopied(true); setTimeout(() => setRCopied(false), 2000); } }}>
-                {rCopied ? '✓ Copied' : '📋 Copy'}
-              </button>
+              <CopyButton text={rTempPassword} label="Copy password to clipboard" className="btn-primary" />
               <button className="btn-secondary" onClick={onClose}>Done</button>
             </div>
             <p className="temp-pw-note">This password will not be shown again.</p>

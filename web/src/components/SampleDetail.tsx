@@ -4,9 +4,9 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { useSample, useLocationSamples } from '../hooks/useSamples';
 import { MEASUREMENT_FIELDS } from '../utils/measurements';
 import { findWaterBodyType, findLandUse } from '../utils/metadata';
-import { copyToClipboard } from '../utils/clipboard';
 import QualityScoreBadge from './QualityScoreBadge';
 import QualityScoreBreakdown from './QualityScoreBreakdown';
+import CopyButton from './CopyButton';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
 const TrendChart = lazy(() => import('./TrendChart'));
@@ -46,8 +46,6 @@ export const SampleDetail = () => {
   const { data: locationSamples } = useLocationSamples(sample?.locationId || '');
   const [lightboxPhoto, setLightboxPhoto] = useState<{ src: string; alt: string } | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState(0);
-  const [copied, setCopied] = useState(false);
-  const [copyError, setCopyError] = useState(false);
   const focusRef = useRef<HTMLButtonElement | null>(null);
 
   // Prevent body scroll when lightbox is open
@@ -151,33 +149,12 @@ export const SampleDetail = () => {
             <p className="sample-detail-coords" style={{ userSelect: 'text' }}>
               {sample.location?.latitude.toFixed(6)}, {sample.location?.longitude.toFixed(6)}
             </p>
-            <button
+            <CopyButton
+              text={sample.location ? `${sample.location.latitude.toFixed(6)}, ${sample.location.longitude.toFixed(6)}` : ''}
+              label="Copy coordinates to clipboard"
               className="btn-copy-coords"
-              onClick={async () => {
-                if (!sample.location) return;
-                const coords = `${sample.location.latitude.toFixed(6)}, ${sample.location.longitude.toFixed(6)}`;
-                const ok = await copyToClipboard(coords);
-                if (ok) {
-                  setCopied(true);
-                  setCopyError(false);
-                  setTimeout(() => setCopied(false), 2000);
-                } else {
-                  setCopyError(true);
-                  setCopied(false);
-                  setTimeout(() => setCopyError(false), 2000);
-                }
-              }}
-              aria-label="Copy coordinates to clipboard"
-              aria-live="polite"
-            >
-              {copied ? '✓ Copied' : copyError ? '❌ Copy failed' : '📋 Copy'}
-            </button>
+            />
           </div>
-          {copyError && (
-            <p className="sample-detail-coords-hint" style={{ color: 'var(--color-text-muted, #666)', fontSize: '0.85em', marginTop: '0.25rem' }}>
-              Tip: select the text above to copy manually
-            </p>
-          )}
         </div>
 
         {/* 🌡️ Common Measurements */}

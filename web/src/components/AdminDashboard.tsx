@@ -5,9 +5,9 @@ import { findWaterBodyType, findLandUse } from '../utils/metadata';
 import { getKeyMeasurements, formatMeasurementValue, getMeasurementIcon, formatDate, truncateAddress } from '../utils/display';
 import { useDebounce } from '../hooks/useDebounce';
 import { authApi, type ResetRequest } from '../api/auth';
-import { copyToClipboard } from '../utils/clipboard';
 import QualityScoreBadge from './QualityScoreBadge';
 import ConfirmDialog from './ConfirmDialog';
+import CopyButton from './CopyButton';
 import AdminUsersTab from './AdminUsersTab';
 import AdminPasswordChange from './admin/AdminPasswordChange';
 import AdminLoginHistory from './admin/AdminLoginHistory';
@@ -52,7 +52,6 @@ export default function AdminDashboard() {
   const [resetRequests, setResetRequests] = useState<ResetRequest[]>([]);
   const [showResetRequests, setShowResetRequests] = useState(false);
   const [fulfilledPasswords, setFulfilledPasswords] = useState<Record<string, { password: string; username: string }>>({});
-  const [copiedPwId, setCopiedPwId] = useState<string | null>(null);
 
   const clearActionFeedback = () => {
     setActionError(null);
@@ -613,17 +612,11 @@ export default function AdminDashboard() {
                               <div className="fulfilled-password-inline">
                                 <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>New password:</span>
                                 <code className="fulfilled-pw-text">{fulfilled.password}</code>
-                                <button
+                                <CopyButton
+                                  text={fulfilled.password}
+                                  label={`Copy password for ${fulfilled.username}`}
                                   className="btn-copy-pw"
-                                  onClick={async () => {
-                                    const ok = await copyToClipboard(fulfilled.password);
-                                    setCopiedPwId(ok ? req.id : null);
-                                    if (ok) setTimeout(() => setCopiedPwId(null), 2000);
-                                  }}
-                                  aria-label="Copy password to clipboard"
-                                >
-                                  {copiedPwId === req.id ? '✓ Copied' : '📋 Copy'}
-                                </button>
+                                />
                               </div>
                             )}
                           </div>
