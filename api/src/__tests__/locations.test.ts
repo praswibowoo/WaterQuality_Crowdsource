@@ -2,8 +2,8 @@ import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import express from 'express';
 import request from 'supertest';
 import { errorHandler, notFoundHandler } from '../middleware/errorHandler';
+import { mockSession, TEST_USER_ID } from './helpers/setup';
 
-const TEST_USER_ID = '00000000-0000-0000-0000-000000000001';
 const TEST_LOCATION_ID = '00000000-0000-0000-0000-000000000099';
 
 const mockFindOrCreateLocation = jest.fn<any>();
@@ -32,18 +32,7 @@ let locationsRouter: express.Router;
 function createApp(sessionData?: Record<string, unknown>) {
   const app = express();
   app.use(express.json());
-  app.use((req, _res, next) => {
-    (req as any).sessionID = 'test-session-id';
-    (req as any).session = {
-      userId: sessionData?.userId || undefined,
-      username: sessionData?.username || undefined,
-      role: sessionData?.role || undefined,
-      regenerate: (cb: (err?: Error) => void) => cb(),
-      destroy: (cb: (err?: Error) => void) => cb(),
-      cookie: {},
-    };
-    next();
-  });
+  app.use(mockSession(sessionData));
   app.use('/api/v1/locations', locationsRouter);
   app.use(notFoundHandler);
   app.use(errorHandler);

@@ -2,6 +2,7 @@ import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import request from 'supertest';
 import express from 'express';
 import { errorHandler, notFoundHandler } from '../middleware/errorHandler';
+import { mockSession } from './helpers/setup';
 
 // Mock Prisma
 const mockPrisma = {
@@ -32,18 +33,7 @@ let authRouter: express.Router;
 function createApp(sessionData?: Record<string, unknown>) {
   const app = express();
   app.use(express.json());
-  app.use((req, _res, next) => {
-    (req as any).sessionID = 'test-session-id';
-    (req as any).session = {
-      userId: sessionData?.userId || undefined,
-      username: sessionData?.username || undefined,
-      role: sessionData?.role || undefined,
-      regenerate: (cb: (err?: Error) => void) => cb(),
-      destroy: (cb: (err?: Error) => void) => cb(),
-      cookie: {},
-    };
-    next();
-  });
+  app.use(mockSession(sessionData));
   app.use('/api/v1/auth', authRouter);
   app.use(notFoundHandler);
   app.use(errorHandler);
