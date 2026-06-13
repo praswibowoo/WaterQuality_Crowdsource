@@ -5,6 +5,7 @@ import { findWaterBodyType, findLandUse } from '../utils/metadata';
 import { getKeyMeasurements, formatMeasurementValue, getMeasurementIcon, formatDate, truncateAddress } from '../utils/display';
 import { useDebounce } from '../hooks/useDebounce';
 import { authApi, type ResetRequest } from '../api/auth';
+import { copyToClipboard } from '../utils/clipboard';
 import QualityScoreBadge from './QualityScoreBadge';
 import ConfirmDialog from './ConfirmDialog';
 import AdminUsersTab from './AdminUsersTab';
@@ -51,6 +52,7 @@ export default function AdminDashboard() {
   const [resetRequests, setResetRequests] = useState<ResetRequest[]>([]);
   const [showResetRequests, setShowResetRequests] = useState(false);
   const [fulfilledPassword, setFulfilledPassword] = useState<{ password: string; username: string } | null>(null);
+  const [copiedPw, setCopiedPw] = useState(false);
 
   const clearActionFeedback = () => {
     setActionError(null);
@@ -629,9 +631,22 @@ export default function AdminDashboard() {
                 </ul>
                 <div style={{ background: '#f0fdfa', border: '1px solid #99f6e4', borderRadius: '8px', padding: 'var(--spacing-md)', margin: 'var(--spacing-md) 0' }}>
                   <label style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>New password:</label>
-                  <code style={{ display: 'block', fontSize: '1.1rem', fontWeight: 600, marginTop: '4px', wordBreak: 'break-all' }}>
-                    {fulfilledPassword.password}
-                  </code>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', marginTop: '4px' }}>
+                    <code style={{ flex: 1, fontSize: '1.1rem', fontWeight: 600, wordBreak: 'break-all' }}>
+                      {fulfilledPassword.password}
+                    </code>
+                    <button
+                      className="btn-copy-pw"
+                      onClick={async () => {
+                        const ok = await copyToClipboard(fulfilledPassword.password);
+                        setCopiedPw(ok);
+                        if (ok) setTimeout(() => setCopiedPw(false), 2000);
+                      }}
+                      aria-label="Copy password to clipboard"
+                    >
+                      {copiedPw ? '✓ Copied' : '📋 Copy'}
+                    </button>
+                  </div>
                 </div>
                 <div className="modal-actions">
                   <button className="btn-primary" onClick={() => setFulfilledPassword(null)}>Mark as Delivered</button>
@@ -1323,6 +1338,19 @@ export default function AdminDashboard() {
           gap: var(--spacing-xs);
           margin-left: var(--spacing-md);
         }
+
+        .btn-copy-pw {
+          background: #0d9488;
+          color: white;
+          border: none;
+          padding: 4px 10px;
+          border-radius: var(--radius-md);
+          cursor: pointer;
+          font-size: 0.8rem;
+          white-space: nowrap;
+          flex-shrink: 0;
+        }
+        .btn-copy-pw:hover { background: #0f766e; }
       `}</style>
     </div>
   );

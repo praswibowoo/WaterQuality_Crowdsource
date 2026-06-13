@@ -232,13 +232,13 @@ export default function AdminUsersTab() {
                     <td>{u._count?.samples ?? 0}</td>
                     <td className="user-actions">
                       {u.role === 'admin' ? (
-                        <button className="btn-tiny btn-green" onClick={() => setResetUser(u)} aria-label={`Reset password for ${u.username}`}>🔑 Reset PW</button>
+                        <button className="btn-tiny btn-green" onClick={() => setResetUser(u)} aria-label={`Reset password for ${u.username}`}>🔑 Password Reset Requests</button>
                       ) : (
                         <>
                           {u.active
                             ? <button className="btn-tiny btn-amber" onClick={() => handleToggleActive(u)} aria-label={`Deactivate ${u.username}`}>❌ Deactivate</button>
                             : <button className="btn-tiny btn-green" onClick={() => handleToggleActive(u)} aria-label={`Reactivate ${u.username}`}>✅ Reactivate</button>}
-                          <button className="btn-tiny btn-gray" onClick={() => setResetUser(u)} aria-label={`Reset password for ${u.username}`}>🔑 Reset PW</button>
+                          <button className="btn-tiny btn-gray" onClick={() => setResetUser(u)} aria-label={`Reset password for ${u.username}`}>🔑 Password Reset Requests</button>
                         </>
                       )}
                     </td>
