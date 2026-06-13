@@ -14,6 +14,7 @@ const HomePage = lazy(() => import('./pages/HomePage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
+const ChangePasswordPage = lazy(() => import('./pages/ChangePasswordPage'));
 const MySamplesPage = lazy(() => import('./pages/MySamplesPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const SyncLogViewer = lazy(() => import('./components/SyncLogViewer'));
@@ -59,6 +60,7 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/change-password" element={<ChangePasswordPage />} />
             <Route path="/my-samples" element={<MySamplesPage />} />
             <Route
               path="/admin"

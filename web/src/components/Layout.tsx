@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useOfflineSync } from '../hooks/useOfflineSync';
 import OfflineStatusBar from './OfflineStatusBar';
@@ -12,6 +12,7 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const { pendingCount } = useOfflineSync();
+  const [bannerDismissed, setBannerDismissed] = useState(false);
 
   const { isAuthenticated, user, logout } = useAuth();
   const { data: adminPendingCount } = usePendingCount();
@@ -36,6 +37,17 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className="layout">
       <OfflineStatusBar />
+
+      {/* H2: mustChangePassword banner */}
+      {isAuthenticated && user?.mustChangePassword && !bannerDismissed && (
+        <div className="password-alert" role="alert">
+          <span className="password-alert-text">⚠️ Please change your password to keep your account secure.</span>
+          <div className="password-alert-actions">
+            <Link to="/change-password" className="password-alert-link">Change now</Link>
+            <button className="password-alert-dismiss" onClick={() => setBannerDismissed(true)} aria-label="Dismiss">✕</button>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <header className="header">
@@ -225,6 +237,42 @@ export default function Layout({ children }: LayoutProps) {
           .main-content {
             padding-bottom: var(--spacing-xl);
           }
+        }
+
+        .password-alert {
+          background: #fef3c7;
+          border-bottom: 1px solid #f59e0b;
+          padding: var(--spacing-sm) var(--spacing-lg);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: var(--spacing-md);
+          font-size: 0.9rem;
+        }
+        .password-alert-text { color: #92400e; }
+        .password-alert-actions {
+          display: flex;
+          align-items: center;
+          gap: var(--spacing-sm);
+          flex-shrink: 0;
+        }
+        .password-alert-link {
+          background: #f59e0b;
+          color: white;
+          padding: 4px 12px;
+          border-radius: var(--radius-md);
+          text-decoration: none;
+          font-weight: 600;
+          font-size: 0.8rem;
+        }
+        .password-alert-link:hover { background: #d97706; }
+        .password-alert-dismiss {
+          background: none;
+          border: none;
+          cursor: pointer;
+          font-size: 1rem;
+          color: #92400e;
+          padding: 4px;
         }
       `}</style>
     </div>

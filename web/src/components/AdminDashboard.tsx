@@ -112,7 +112,9 @@ export default function AdminDashboard() {
   const handleFulfillReset = async (id: string) => {
     try {
       const res = await authApi.fulfillResetRequest(id);
-      setFulfilledPassword({ password: res.tempPassword, username: id });
+      const request = resetRequests.find((r) => r.id === id);
+      const displayName = request?.user.username ?? 'unknown user';
+      setFulfilledPassword({ password: res.tempPassword, username: displayName });
       setResetRequests((prev) => prev.filter((r) => r.id !== id));
       setActionSuccess('Password reset fulfilled');
       setTimeout(() => setActionSuccess(null), 3000);

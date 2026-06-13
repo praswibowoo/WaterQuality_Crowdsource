@@ -184,6 +184,7 @@ router.post(
           username: user.username,
           name: user.name,
           role: user.role,
+          mustChangePassword: user.mustChangePassword,
         },
       });
     });
@@ -200,7 +201,7 @@ router.get(
 
     const user = await prisma.userAccount.findUnique({
       where: { id: req.session.userId },
-      select: { id: true, username: true, name: true, role: true, active: true },
+      select: { id: true, username: true, name: true, role: true, active: true, mustChangePassword: true },
     });
 
     if (!user || !user.active) {
@@ -210,7 +211,7 @@ router.get(
       throw new AppError('Not authenticated', 401);
     }
 
-    res.json({ user: { id: user.id, username: user.username, name: user.name, role: user.role } });
+    res.json({ user: { id: user.id, username: user.username, name: user.name, role: user.role, mustChangePassword: user.mustChangePassword } });
   })
 );
 
@@ -285,10 +286,10 @@ router.post(
     // Hash new password
     const hashedPassword = await bcrypt.hash(newPassword, BCRYPT_COST);
 
-    // Update password
+    // Update password + clear mustChangePassword
     await prisma.userAccount.update({
       where: { id: userId },
-      data: { password: hashedPassword },
+      data: { password: hashedPassword, mustChangePassword: false },
     });
 
     // Kill all other sessions (single session enforcement)

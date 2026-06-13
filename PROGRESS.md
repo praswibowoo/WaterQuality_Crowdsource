@@ -259,6 +259,7 @@
 | 2026-06-13 | Lead Manager | Implemented Hotfix v1.5.1 | WQ-203 to WQ-208 | Fixed 6 issues: health check, IP spoofing, location dedup, CSV export cap, bcrypt cost, clipboard fallback. 284/284 tests pass. |
 | 2026-06-13 | Lead Manager | Post-hotfix test coverage gap | WQ-205, WQ-208 | Added 3 tests for POST /locations dedup (locations.test.ts) + 2 tests for copy-coords fallback (SampleDetail.test.tsx). Total: 289 tests. |
 | 2026-06-13 | Lead Manager | Implemented Milestone 19: Admin Productivity & Self-Service | WQ-195, WQ-196 | Batch approve/reject UI + admin-mediated password reset. New Prisma model (PasswordResetRequest), forgot-password endpoint, mustChangePassword flag. 289+ tests pass. |
+| 2026-06-13 | Lead Manager | Fixed Milestone 19 bugs | WQ-195, WQ-196 | H1: show username (not UUID) in fulfilled password modal. H2: enforce mustChangePassword with banner + /change-password page + clear on change. 289 tests pass. |
 
 ---
 

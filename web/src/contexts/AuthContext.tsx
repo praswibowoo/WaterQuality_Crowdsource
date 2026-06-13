@@ -6,6 +6,7 @@ interface User {
   username: string;
   name?: string;
   role: string;
+  mustChangePassword?: boolean;
 }
 
 export interface LoginLogEntry {
