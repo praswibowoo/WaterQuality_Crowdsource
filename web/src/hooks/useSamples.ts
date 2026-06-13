@@ -94,3 +94,17 @@ export function useDeleteSample() {
     },
   });
 }
+
+// WQ-195: batch approve/reject/revert
+export function useBatchUpdateSamples() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ ids, action }: { ids: string[]; action: 'approve' | 'reject' | 'revert' }) =>
+      samplesApi.batchUpdate(ids, action),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['samples'] });
+      queryClient.invalidateQueries({ queryKey: ['samples', 'stats'] });
+    },
+  });
+}

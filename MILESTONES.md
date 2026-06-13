@@ -889,6 +889,40 @@
 
 ---
 
+## Milestone 19: Admin Productivity & Self-Service (v1.6.0) ✅ Done
+
+**Goal**: Save admin time on batch moderation and let users self-service password resets without contacting admin directly.
+
+### Phase A: Batch Approval
+
+| Feature ID | Feature | Priority | Status |
+|------------|---------|----------|--------|
+| WQ-195 | Batch approve/reject in admin | 🟡 High | ✅ Done |
+
+### Phase B: Password Reset
+
+| Feature ID | Feature | Priority | Status |
+|------------|---------|----------|--------|
+| WQ-196 | User-initiated password reset (admin-mediated) | 🟡 High | ✅ Done |
+
+**Exit Criteria**
+| Criteria | Status |
+|----------|--------|
+| Admin can select multiple samples and batch-approve | ✅ Done |
+| Admin can batch-reject and batch-revert | ✅ Done |
+| Backend `POST /api/v1/samples/batch` endpoint with auth, validation, transaction | ✅ Done |
+| User can request password reset via `/forgot-password` | ✅ Done |
+| Admin-mediated reset with secure temp password generation | ✅ Done |
+| New password form at `/reset-password?token=...` | ✅ Done |
+| All existing 289 tests still pass | ✅ Done |
+| ~10 new tests added (WQ-195 + WQ-196) | ✅ Done |
+| Lint + typecheck + build clean in both workspaces | ✅ Done |
+| One new Prisma migration (additive, reversible) | ✅ Done |
+| No breaking changes to existing API | ✅ Done |
+| Documentation updated (PROGRESS.md, MILESTONES.md) | ✅ Done |
+
+---
+
 ## Future Backlog 📝 Planned
 
 | Feature ID | Feature | Priority | Status |
@@ -899,8 +933,6 @@
 | WQ-152 | Migrate AdminDashboard inline styles to CSS modules | 🟢 Medium | 📝 Future Backlog |
 | WQ-153 | Migrate SampleForm inline styles to CSS modules | 🟢 Medium | 📝 Future Backlog |
 | WQ-154 | Migrate SampleMap inline styles to CSS modules | 🟢 Medium | 📝 Future Backlog |
-| WQ-195 | Batch approve/reject in admin | 🟡 High | 📝 Future Backlog |
-| WQ-196 | User-initiated password reset | 🟡 High | 📝 Future Backlog |
 | WQ-197 | Dark mode support | 🟢 Medium | 📝 Future Backlog |
 | WQ-198 | Offline data export/backup | 🟢 Medium | 📝 Future Backlog |
 | WQ-199 | Sample data audit trail | 🟢 Medium | 📝 Future Backlog |

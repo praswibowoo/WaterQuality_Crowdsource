@@ -28,17 +28,27 @@ enum Status {
   rejected
 }
 
+enum ResetRequestStatus {
+  pending
+  fulfilled
+  rejected
+  expired
+}
+
 model UserAccount {
-  id         String      @id @default(uuid())
-  name       String?     // Display name (nullable for backward compat with existing admin)
-  username   String      @unique
-  password   String
-  role       UserRole    @default(user)
-  active     Boolean     @default(true) // Soft delete flag
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-  loginLogs  LoginLog[]
-  samples    Sample[]
+  id                 String                  @id @default(uuid())
+  name               String?
+  username           String                  @unique
+  password           String
+  role               UserRole                @default(user)
+  active             Boolean                 @default(true)
+  mustChangePassword Boolean                 @default(false) // Set true when admin resets password
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  loginLogs          LoginLog[]
+  samples            Sample[]
+  resetRequests      PasswordResetRequest[]
+  resolvedRequests   PasswordResetRequest[] @relation("ResetRequestResolver")
 }
 
 model LoginLog {
@@ -105,4 +115,24 @@ model Photo {
 
   @@index([sampleId])
   @@index([createdAt])
+}
+
+model PasswordResetRequest {
+  id                 String              @id @default(uuid())
+  userId             String
+  user               UserAccount         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reason             String?
+  status             ResetRequestStatus  @default(pending)
+  rejectionReason    String?
+  generatedPassword  String?             // Cleared after admin communicates to user
+  resolvedAt         DateTime?
+  resolvedById       String?
+  resolvedBy         UserAccount?        @relation("ResetRequestResolver", fields: [resolvedById], references: [id])
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@index([status])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([resolvedById])
 }

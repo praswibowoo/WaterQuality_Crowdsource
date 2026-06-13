@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, fireEvent } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import { renderWithProviders, createMockSample } from './helpers/test-utils';
 
 vi.mock('../hooks/useSamples', () => ({
@@ -7,6 +7,7 @@ vi.mock('../hooks/useSamples', () => ({
   useSamplesStats: vi.fn(),
   useUpdateSample: vi.fn(),
   useDeleteSample: vi.fn(),
+  useBatchUpdateSamples: vi.fn().mockReturnValue({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
 import { useSamples, useSamplesStats, useUpdateSample, useDeleteSample } from '../hooks/useSamples';
@@ -36,6 +37,26 @@ vi.mock('../components/QualityScoreBadge', () => ({
   default: ({ score }: { score: number }) => <span data-testid="quality-badge">{score}</span>,
 }));
 
+vi.mock('../api/auth', () => ({
+  authApi: {
+    listResetRequests: vi.fn().mockResolvedValue({ data: [], nextCursor: null, totalCount: 0 }),
+    fulfillResetRequest: vi.fn(),
+    rejectResetRequest: vi.fn(),
+  },
+}));
+
+vi.mock('../components/admin/AdminPasswordChange', () => ({
+  default: () => <div data-testid="admin-password-change"><h3>🔑 Change Password</h3></div>,
+}));
+
+vi.mock('../components/admin/AdminLoginHistory', () => ({
+  default: () => <div data-testid="admin-login-history"><h3>📋 Login History</h3></div>,
+}));
+
+vi.mock('../components/SyncLogViewer', () => ({
+  default: () => <div data-testid="sync-log-viewer" />,
+}));
+
 import { useAuth } from '../contexts/AuthContext';
 const mockUseAuth = vi.mocked(useAuth);
 
@@ -53,6 +74,7 @@ describe('AdminDashboard', () => {
       register: vi.fn(),
       changePassword: vi.fn(),
       getLoginHistory: vi.fn().mockResolvedValue([]),
+      forgotPassword: vi.fn(),
     });
     mockUseSamplesStats.mockReturnValue({ data: { total: 10, pending: 3, approved: 5, rejected: 2 } } as never);
     mockUseUpdateSample.mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as never);
@@ -172,10 +194,7 @@ describe('AdminDashboard', () => {
     renderWithProviders(<AdminDashboard />);
 
     expect(screen.getByText('🔑 Change Password')).toBeInTheDocument();
-    // Password form is collapsed by default — click to expand
-    fireEvent.click(screen.getByText('🔑 Change Password'));
-    expect(screen.getByPlaceholderText('Enter current password')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Min. 8 characters')).toBeInTheDocument();
+    expect(screen.getByTestId('admin-password-change')).toBeInTheDocument();
   });
 
   it('renders login history section', () => {
@@ -188,5 +207,6 @@ describe('AdminDashboard', () => {
     renderWithProviders(<AdminDashboard />);
 
     expect(screen.getByText('📋 Login History')).toBeInTheDocument();
+    expect(screen.getByTestId('admin-login-history')).toBeInTheDocument();
   });
 });

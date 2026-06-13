@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import prisma from '../db/prisma';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
-import { authMiddleware, type AuthenticatedRequest } from '../middleware/auth';
+import { authMiddleware, adminMiddleware, type AuthenticatedRequest } from '../middleware/auth';
 import { recalculateScore } from '../services/qualityScoring';
 import { findOrCreateLocation } from '../services/locationService';
 import {
@@ -11,6 +11,7 @@ import {
   updateSampleSchema,
   getSamplesQuerySchema,
   markersQuerySchema,
+  batchUpdateSchema,
   uuidParam,
 } from '../validators/schemas';
 
@@ -468,6 +469,56 @@ router.delete(
     }
 
     res.status(204).send();
+  })
+);
+
+// WQ-195: POST /api/v1/samples/batch — batch approve/reject/revert (admin only)
+router.post(
+  '/batch',
+  adminMiddleware,
+  asyncHandler(async (req: Request, res: Response) => {
+    const bodyResult = batchUpdateSchema.safeParse(req.body);
+    if (!bodyResult.success) {
+      throw bodyResult.error;
+    }
+
+    const { ids, action } = bodyResult.data;
+
+    // Map action to target status
+    const targetStatus = action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : 'pending';
+
+    // Update all samples in a single transaction
+    const updated = await prisma.$transaction(async (tx) => {
+      let updatedCount = 0;
+      const failed: Array<{ id: string; error: string }> = [];
+
+      for (const id of ids) {
+        try {
+          const sample = await tx.sample.findUnique({ where: { id }, select: { id: true, status: true } });
+          if (!sample) {
+            failed.push({ id, error: 'Sample not found' });
+            continue;
+          }
+          if (sample.status === targetStatus) {
+            failed.push({ id, error: `Already ${targetStatus}` });
+            continue;
+          }
+          await tx.sample.update({ where: { id }, data: { status: targetStatus as 'approved' | 'rejected' | 'pending' } });
+          updatedCount++;
+        } catch (err) {
+          failed.push({ id, error: err instanceof Error ? err.message : 'Unknown error' });
+        }
+      }
+
+      return { updated: updatedCount, failed };
+    });
+
+    // Recalculate quality scores for updated samples (fire-and-forget)
+    for (const id of ids) {
+      recalculateScore(id);
+    }
+
+    res.json(updated);
   })
 );
 

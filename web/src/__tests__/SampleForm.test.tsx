@@ -51,6 +51,7 @@ function defaultAuth() {
     isLoading: false,
     login: vi.fn(), logout: vi.fn(), register: vi.fn(),
     changePassword: vi.fn(), getLoginHistory: vi.fn().mockResolvedValue([]),
+    forgotPassword: vi.fn(),
   };
 }
 
@@ -79,6 +80,7 @@ describe('SampleForm', () => {
       register: vi.fn(),
       changePassword: vi.fn(),
       getLoginHistory: vi.fn().mockResolvedValue([]),
+      forgotPassword: vi.fn(),
     });
 
     renderWithProviders(<SampleForm />);

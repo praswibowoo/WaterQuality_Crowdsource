@@ -93,7 +93,7 @@ export default function LoginPage() {
           Don&apos;t have an account? <Link to="/register">Register</Link>
         </p>
         <p className="auth-switch" style={{ marginTop: 'var(--spacing-xs)' }}>
-          Forgot your password? <span style={{ color: 'var(--color-text-muted)' }}>Contact admin</span>
+          Forgot your password? <Link to="/forgot-password">Request reset</Link>
         </p>
 
       </div>

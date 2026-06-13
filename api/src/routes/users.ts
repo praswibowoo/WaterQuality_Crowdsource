@@ -1,26 +1,15 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
 import prisma from '../db/prisma';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
 import { adminMiddleware, type AuthenticatedRequest } from '../middleware/auth';
 import { createUserSchema, updateUserSchema, resetPasswordSchema, uuidParam, getUsersQuerySchema } from '../validators/schemas';
-import { BCRYPT_COST } from '../constants';
+import { BCRYPT_COST, generateTempPassword } from '../constants';
 
 // Allowed sort fields for user queries (WQ-137)
 const ALLOWED_SORT_FIELDS = ['name', 'username', 'role', 'createdAt'] as const;
 
 const router = Router();
-
-// Helper: generate cryptographically secure temporary password (WQ-160)
-function generateTempPassword(): string {
-  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < 12; i++) {
-    result += chars[crypto.randomInt(0, chars.length)];
-  }
-  return result;
-}
 
 // Helper: kill all sessions for a given user (used when admin resets password)
 async function killUserSessions(userId: string): Promise<void> {

@@ -1,9 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useSamples, useUpdateSample, useDeleteSample, useSamplesStats } from '../hooks/useSamples';
+import { useSamples, useUpdateSample, useDeleteSample, useSamplesStats, useBatchUpdateSamples } from '../hooks/useSamples';
 import { findWaterBodyType, findLandUse } from '../utils/metadata';
 import { getKeyMeasurements, formatMeasurementValue, getMeasurementIcon, formatDate, truncateAddress } from '../utils/display';
 import { useDebounce } from '../hooks/useDebounce';
+import { authApi, type ResetRequest } from '../api/auth';
 import QualityScoreBadge from './QualityScoreBadge';
 import ConfirmDialog from './ConfirmDialog';
 import AdminUsersTab from './AdminUsersTab';
@@ -41,9 +42,96 @@ export default function AdminDashboard() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
+  // WQ-195: batch selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [batchConfirmAction, setBatchConfirmAction] = useState<'approve' | 'reject' | 'revert' | null>(null);
+  const batchUpdate = useBatchUpdateSamples();
+
+  // WQ-196v2: reset requests state
+  const [resetRequests, setResetRequests] = useState<ResetRequest[]>([]);
+  const [showResetRequests, setShowResetRequests] = useState(false);
+  const [fulfilledPassword, setFulfilledPassword] = useState<{ password: string; username: string } | null>(null);
+
   const clearActionFeedback = () => {
     setActionError(null);
     setActionSuccess(null);
+  };
+
+  // WQ-195: batch selection helpers
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.size === samples.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(samples.map((s) => s.id)));
+    }
+  };
+
+  const handleClearSelection = () => setSelectedIds(new Set());
+
+  const handleBatchConfirm = async () => {
+    if (!batchConfirmAction || selectedIds.size === 0) return;
+    clearActionFeedback();
+    try {
+      const result = await batchUpdate.mutateAsync({ ids: Array.from(selectedIds), action: batchConfirmAction });
+      if (result.updated > 0) {
+        setActionSuccess(`Updated ${result.updated} sample(s)`);
+        setTimeout(() => setActionSuccess(null), 3000);
+      }
+      if (result.failed.length > 0) {
+        setActionError(`${result.failed.length} sample(s) failed: ${result.failed.map((f) => f.error).join(', ')}`);
+      }
+      setSelectedIds(new Set());
+    } catch (err) {
+      console.error('Batch update failed:', err);
+      setActionError('Batch update failed');
+    } finally {
+      setBatchConfirmAction(null);
+    }
+  };
+
+  // WQ-196v2: load reset requests
+  const loadResetRequests = async () => {
+    try {
+      const res = await authApi.listResetRequests({ status: 'pending', limit: 50 });
+      setResetRequests(res.data);
+      setShowResetRequests(true);
+    } catch (err) {
+      console.error('Failed to load reset requests:', err);
+    }
+  };
+
+  const handleFulfillReset = async (id: string) => {
+    try {
+      const res = await authApi.fulfillResetRequest(id);
+      setFulfilledPassword({ password: res.tempPassword, username: id });
+      setResetRequests((prev) => prev.filter((r) => r.id !== id));
+      setActionSuccess('Password reset fulfilled');
+      setTimeout(() => setActionSuccess(null), 3000);
+    } catch (err) {
+      console.error('Failed to fulfill reset request:', err);
+      setActionError('Failed to fulfill reset request');
+    }
+  };
+
+  const handleRejectReset = async (id: string) => {
+    try {
+      await authApi.rejectResetRequest(id, 'Rejected by admin');
+      setResetRequests((prev) => prev.filter((r) => r.id !== id));
+      setActionSuccess('Reset request rejected');
+      setTimeout(() => setActionSuccess(null), 3000);
+    } catch (err) {
+      console.error('Failed to reject reset request:', err);
+      setActionError('Failed to reject reset request');
+    }
   };
 
   // Clear confirm dialog when filters change
@@ -224,6 +312,14 @@ export default function AdminDashboard() {
 
       {/* Status Filter Tabs */}
       <div className="filter-tabs">
+        <label className="select-all-label" aria-label="Select all visible samples">
+          <input
+            type="checkbox"
+            checked={samples.length > 0 && selectedIds.size === samples.length}
+            onChange={handleSelectAll}
+          />
+          All
+        </label>
         {(['all', 'pending', 'approved', 'rejected'] as StatusFilter[]).map((status) => (
           <button
             key={status}
@@ -271,6 +367,13 @@ export default function AdminDashboard() {
             const keyMeasurements = getKeyMeasurements(sample);
             return (
               <div key={sample.id} className="admin-sample-card">
+                <input
+                  type="checkbox"
+                  className="sample-select-cb"
+                  checked={selectedIds.has(sample.id)}
+                  onChange={() => handleToggleSelect(sample.id)}
+                  aria-label={`Select sample by ${sample.authorName}`}
+                />
                 <Link to={`/sample/${sample.id}`} className="sample-card-link">
                   <div className="sample-card-icon">
                     {getMeasurementIcon(sample)}
@@ -428,8 +531,113 @@ export default function AdminDashboard() {
         />
       )}
 
+      {/* WQ-195: Batch Action Bar */}
+      {selectedIds.size > 0 && (
+        <div className="batch-action-bar" role="region" aria-label="Batch actions">
+          <span className="batch-count" aria-live="polite">{selectedIds.size} sample(s) selected</span>
+          <button className="btn-approve" onClick={() => setBatchConfirmAction('approve')} disabled={batchUpdate.isPending}>✓ Approve All</button>
+          <button className="btn-reject" onClick={() => setBatchConfirmAction('reject')} disabled={batchUpdate.isPending}>✗ Reject All</button>
+          <button className="btn-revert" onClick={() => setBatchConfirmAction('revert')} disabled={batchUpdate.isPending}>↩ Revert All</button>
+          <button className="btn-clear" onClick={handleClearSelection} disabled={batchUpdate.isPending}>Clear</button>
+        </div>
+      )}
+
+      {/* WQ-195: Batch Confirmation Modal */}
+      {batchConfirmAction && (
+        <div className="modal-overlay" onClick={() => setBatchConfirmAction(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={`Batch ${batchConfirmAction}`}>
+            <h3>Confirm Batch {batchConfirmAction.charAt(0).toUpperCase() + batchConfirmAction.slice(1)}</h3>
+            <p>Are you sure you want to <strong>{batchConfirmAction}</strong> <strong>{selectedIds.size}</strong> sample(s)?</p>
+            <div className="modal-actions">
+              <button className="btn-cancel" onClick={() => setBatchConfirmAction(null)}>Cancel</button>
+              <button className={`btn-${batchConfirmAction === 'approve' ? 'approve' : batchConfirmAction === 'reject' ? 'reject' : 'revert'}`} onClick={handleBatchConfirm} disabled={batchUpdate.isPending}>
+                {batchUpdate.isPending ? 'Processing...' : `Confirm ${batchConfirmAction.charAt(0).toUpperCase() + batchConfirmAction.slice(1)}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       </div>) : (
-        <div id="users-tab" role="tabpanel"><AdminUsersTab /></div>
+        <div id="users-tab" role="tabpanel">
+          <AdminUsersTab />
+
+          {/* WQ-196v2: Reset Requests Panel */}
+          <div className="admin-section" style={{ marginTop: 'var(--spacing-lg)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--spacing-md)' }}>
+              <h3>🔑 Password Reset Requests</h3>
+              {!showResetRequests ? (
+                <button className="btn-primary" onClick={loadResetRequests} style={{ fontSize: '0.8rem', padding: 'var(--spacing-xs) var(--spacing-md)' }}>
+                  View Requests
+                </button>
+              ) : (
+                <button className="btn-clear" onClick={() => setShowResetRequests(false)} style={{ fontSize: '0.8rem' }}>
+                  Hide
+                </button>
+              )}
+            </div>
+
+            {showResetRequests && (
+              <>
+                {resetRequests.length === 0 ? (
+                  <p style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: 'var(--spacing-lg)' }}>
+                    No pending reset requests.
+                  </p>
+                ) : (
+                  <div className="reset-requests-list">
+                    {resetRequests.map((req) => (
+                      <div key={req.id} className="reset-request-card">
+                        <div className="reset-request-info">
+                          <strong>{req.user.username}</strong>
+                          {req.user.name && <span style={{ color: 'var(--color-text-muted)', marginLeft: 'var(--spacing-xs)' }}>({req.user.name})</span>}
+                          {req.reason && <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>"{req.reason}"</p>}
+                          <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                            Requested {new Date(req.createdAt).toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="reset-request-actions">
+                          <button className="btn-approve" onClick={() => handleFulfillReset(req.id)} style={{ fontSize: '0.8rem' }}>
+                            ✓ Fulfill
+                          </button>
+                          <button className="btn-reject" onClick={() => handleRejectReset(req.id)} style={{ fontSize: '0.8rem' }}>
+                            ✗ Reject
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* WQ-196v2: Fulfilled Password Modal */}
+          {fulfilledPassword && (
+            <div className="modal-overlay" onClick={() => setFulfilledPassword(null)}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Password reset fulfilled">
+                <h3>🔑 New Password Generated</h3>
+                <p style={{ color: '#dc2626', fontWeight: 600, marginBottom: 'var(--spacing-sm)' }}>
+                  ⚠️ Never email this password in plaintext.
+                </p>
+                <p>Communicate the new password to the user via:</p>
+                <ul style={{ margin: 'var(--spacing-sm) 0' }}>
+                  <li>In-person meeting</li>
+                  <li>Phone call</li>
+                  <li>Your team's secure messaging app</li>
+                </ul>
+                <div style={{ background: '#f0fdfa', border: '1px solid #99f6e4', borderRadius: '8px', padding: 'var(--spacing-md)', margin: 'var(--spacing-md) 0' }}>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>New password:</label>
+                  <code style={{ display: 'block', fontSize: '1.1rem', fontWeight: 600, marginTop: '4px', wordBreak: 'break-all' }}>
+                    {fulfilledPassword.password}
+                  </code>
+                </div>
+                <div className="modal-actions">
+                  <button className="btn-primary" onClick={() => setFulfilledPassword(null)}>Mark as Delivered</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       )}
 
       {/* 🔑 Change Password Section */}
@@ -1003,6 +1211,115 @@ export default function AdminDashboard() {
             flex-direction: column;
             align-items: flex-start;
           }
+        }
+
+        /* WQ-195: batch selection */
+        .select-all-label {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          cursor: pointer;
+          font-size: 0.8rem;
+          color: var(--color-text-muted);
+          padding: 4px 8px;
+          border-radius: var(--radius-md);
+        }
+        .select-all-label:hover { background: var(--color-background); }
+        .sample-select-cb {
+          position: absolute;
+          top: 8px;
+          left: 8px;
+          width: 18px;
+          height: 18px;
+          cursor: pointer;
+          z-index: 1;
+        }
+        .admin-sample-card { position: relative; }
+        .batch-action-bar {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background: white;
+          border-top: 2px solid var(--color-primary);
+          padding: var(--spacing-sm) var(--spacing-md);
+          display: flex;
+          align-items: center;
+          gap: var(--spacing-sm);
+          z-index: 100;
+          box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+        }
+        .batch-count {
+          font-weight: 600;
+          color: var(--color-text);
+          margin-right: auto;
+        }
+        .btn-clear {
+          background: var(--color-background);
+          border: 1px solid var(--color-border);
+          padding: 6px 12px;
+          border-radius: var(--radius-md);
+          cursor: pointer;
+          font-size: 0.8rem;
+        }
+        .btn-clear:hover { background: var(--color-border); }
+
+        /* WQ-195/196v2: modal */
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0,0,0,0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 200;
+        }
+        .modal-content {
+          background: white;
+          border-radius: 12px;
+          padding: var(--spacing-xl);
+          max-width: 480px;
+          width: 90%;
+          box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+        }
+        .modal-content h3 { margin: 0 0 var(--spacing-sm); }
+        .modal-actions {
+          display: flex;
+          gap: var(--spacing-sm);
+          justify-content: flex-end;
+          margin-top: var(--spacing-lg);
+        }
+        .btn-cancel {
+          background: var(--color-background);
+          border: 1px solid var(--color-border);
+          padding: 8px 16px;
+          border-radius: var(--radius-md);
+          cursor: pointer;
+        }
+
+        /* WQ-196v2: reset requests */
+        .reset-requests-list {
+          display: flex;
+          flex-direction: column;
+          gap: var(--spacing-sm);
+        }
+        .reset-request-card {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: var(--spacing-md);
+          background: var(--color-background);
+          border-radius: var(--radius-md);
+          border: 1px solid var(--color-border);
+        }
+        .reset-request-info { flex: 1; }
+        .reset-request-actions {
+          display: flex;
+          gap: var(--spacing-xs);
+          margin-left: var(--spacing-md);
         }
       `}</style>
     </div>

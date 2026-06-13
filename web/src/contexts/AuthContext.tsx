@@ -25,6 +25,7 @@ interface AuthContextType {
   register: (name: string, username: string, password: string) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   getLoginHistory: () => Promise<LoginLogEntry[]>;
+  forgotPassword: (username: string, reason?: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -101,8 +102,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(response.data.user);
   }, []);
 
+  const forgotPassword = useCallback(async (username: string, reason?: string) => {
+    await axios.post(
+      `${API_BASE_URL}/auth/forgot-password`,
+      { username, reason },
+      { withCredentials: true }
+    );
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, isLoading, login, logout, register, changePassword, getLoginHistory }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, isLoading, login, logout, register, changePassword, getLoginHistory, forgotPassword }}>
       {children}
     </AuthContext.Provider>
   );

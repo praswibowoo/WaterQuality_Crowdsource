@@ -214,8 +214,8 @@
 | WQ-192 | GitHub Actions Docker build on main | ✅ Done | v1.5.0 | Lead Manager | @lead-manager | — | 2026-06-08 | Docker build + push to ghcr.io on main branch push |
 | WQ-193 | Startup environment validation | ✅ Done | v1.5.0 | Lead Manager | @lead-manager | — | 2026-06-08 | Validate DATABASE_URL, SESSION_SECRET, ADMIN_PASSWORD; fail-fast with error message |
 | WQ-194 | Add request timeout middleware | ✅ Done | v1.5.0 | Lead Manager | @lead-manager | — | 2026-06-08 | 30s default, 60s for spatial endpoints; returns 508 on timeout |
-| WQ-195 | Batch approve/reject in admin | 📝 Future Backlog | Future | — | — | — | — | Checkbox + bulk action UI |
-| WQ-196 | User-initiated password reset | 📝 Future Backlog | Future | — | — | — | — | Instead of "Contact admin" |
+| WQ-195 | Batch approve/reject in admin | ✅ Done | v1.6.0 | Lead Manager | — | — | — | Checkbox + bulk action UI; admin can batch approve/reject/revert up to 100 samples per call |
+| WQ-196 | User-initiated password reset (admin-mediated) | ✅ Done | v1.6.0 | Lead Manager | — | — | — | Forgot password → admin sees request → generates temp password → communicates to user; mustChangePassword flag; 7-day expiry |
 | WQ-197 | Dark mode support | 📝 Future Backlog | Future | — | — | — | — | CSS custom properties + prefers-color-scheme |
 | WQ-198 | Offline data export/backup | 📝 Future Backlog | Future | — | — | — | — | Export pending offline submissions |
 | WQ-199 | Sample data audit trail | 📝 Future Backlog | Future | — | — | — | — | Track who changed what and when |
@@ -258,6 +258,7 @@
 | 2026-06-13 | Lead Manager | Deep security + correctness audit (18 findings) | H1–H5, M1–M8, L1–L5 | Full codebase audit: 5 High, 8 Medium, 5 Low. No Blocker-severity bugs. Created Hotfix v1.5.1 spec at docs/hotfix-v1.5.1-spec.md. Registered WQ-203 to WQ-208. |
 | 2026-06-13 | Lead Manager | Implemented Hotfix v1.5.1 | WQ-203 to WQ-208 | Fixed 6 issues: health check, IP spoofing, location dedup, CSV export cap, bcrypt cost, clipboard fallback. 284/284 tests pass. |
 | 2026-06-13 | Lead Manager | Post-hotfix test coverage gap | WQ-205, WQ-208 | Added 3 tests for POST /locations dedup (locations.test.ts) + 2 tests for copy-coords fallback (SampleDetail.test.tsx). Total: 289 tests. |
+| 2026-06-13 | Lead Manager | Implemented Milestone 19: Admin Productivity & Self-Service | WQ-195, WQ-196 | Batch approve/reject UI + admin-mediated password reset. New Prisma model (PasswordResetRequest), forgot-password endpoint, mustChangePassword flag. 289+ tests pass. |
 
 ---
 

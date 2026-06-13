@@ -149,6 +149,12 @@ export const samplesApi = {
     const response = await apiClient.get<QualityScoreResponse>(`/samples/${sampleId}/quality-score`);
     return response.data;
   },
+
+  // WQ-195: batch approve/reject/revert
+  async batchUpdate(ids: string[], action: 'approve' | 'reject' | 'revert'): Promise<{ updated: number; failed: Array<{ id: string; error: string }> }> {
+    const response = await apiClient.post<{ updated: number; failed: Array<{ id: string; error: string }> }>('/samples/batch', { ids, action });
+    return response.data;
+  },
 };
 
 export interface FactorScore {

@@ -238,6 +238,12 @@ addSessionIndex().catch((e) => {
   console.warn('Session index creation failed (non-fatal):', e.message);
 });
 
+// Expire stale password reset requests on startup (WQ-196v2)
+import { expireStaleResetRequests } from './services/resetRequestExpiry';
+expireStaleResetRequests().catch((e) => {
+  console.warn('Reset request expiry sweep failed (non-fatal):', e.message);
+});
+
 // Graceful shutdown — close Prisma connections
 process.on('SIGTERM', async () => {
   console.log('SIGTERM received. Shutting down gracefully...');

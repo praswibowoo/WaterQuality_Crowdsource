@@ -121,7 +121,30 @@ export const resetPasswordSchema = z.object({
 
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'Current password is required').max(128, 'Password too long'),
-  newPassword: z.string().min(8, 'New password must be at least 8 characters').max(128, 'Password too long'),
+  newPassword: z.string().min(8, 'New password must be at least 8 characters').max(128, 'New password too long'),
+});
+
+// WQ-195: Batch update schema
+export const batchUpdateSchema = z.object({
+  ids: z.array(z.string().uuid('Invalid ID format')).min(1, 'At least one sample ID required').max(100, 'Maximum 100 samples per batch'),
+  action: z.enum(['approve', 'reject', 'revert']),
+});
+
+// WQ-196v2: Password reset request schemas
+export const forgotPasswordSchema = z.object({
+  username: z.string().min(1, 'Username is required').max(30, 'Username too long'),
+  reason: z.string().max(500, 'Reason must not exceed 500 characters').optional(),
+});
+
+export const rejectResetRequestSchema = z.object({
+  rejectionReason: z.string().max(500, 'Rejection reason must not exceed 500 characters').optional(),
+});
+
+// Reset request query schema
+export const resetRequestsQuerySchema = z.object({
+  status: z.enum(['pending', 'fulfilled', 'rejected', 'expired']).optional(),
+  cursor: z.string().uuid().optional(),
+  limit: z.coerce.number().min(1).max(100).optional().default(20),
 });
 
 // Type exports
