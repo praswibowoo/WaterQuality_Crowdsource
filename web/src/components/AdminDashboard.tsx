@@ -1,17 +1,17 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useSamples, useUpdateSample, useDeleteSample, useSamplesStats, useBatchUpdateSamples } from '../hooks/useSamples';
+import { useSamples, useUpdateSample, useDeleteSample, useSamplesStats } from '../hooks/useSamples';
 import { findWaterBodyType, findLandUse } from '../utils/metadata';
 import { getKeyMeasurements, formatMeasurementValue, getMeasurementIcon, formatDate, truncateAddress } from '../utils/display';
 import { useDebounce } from '../hooks/useDebounce';
-import { authApi, type ResetRequest } from '../api/auth';
 import QualityScoreBadge from './QualityScoreBadge';
 import ConfirmDialog from './ConfirmDialog';
-import CopyButton from './CopyButton';
 import AdminUsersTab from './AdminUsersTab';
 import AdminPasswordChange from './admin/AdminPasswordChange';
 import AdminLoginHistory from './admin/AdminLoginHistory';
 import SyncLogViewer from './SyncLogViewer';
+import PasswordResetRequestsPanel from './PasswordResetRequestsPanel';
+import BatchActionBar from './BatchActionBar';
 
 type StatusFilter = 'all' | 'pending' | 'approved' | 'rejected';
 type QualityScoreFilter = 'all' | 'high' | 'moderate' | 'low' | 'none';
@@ -45,13 +45,6 @@ export default function AdminDashboard() {
 
   // WQ-195: batch selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [batchConfirmAction, setBatchConfirmAction] = useState<'approve' | 'reject' | 'revert' | null>(null);
-  const batchUpdate = useBatchUpdateSamples();
-
-  // WQ-196v2: reset requests state
-  const [resetRequests, setResetRequests] = useState<ResetRequest[]>([]);
-  const [showResetRequests, setShowResetRequests] = useState(false);
-  const [fulfilledPasswords, setFulfilledPasswords] = useState<Record<string, { password: string; username: string }>>({});
 
   const clearActionFeedback = () => {
     setActionError(null);
@@ -73,76 +66,6 @@ export default function AdminDashboard() {
       setSelectedIds(new Set());
     } else {
       setSelectedIds(new Set(samples.map((s) => s.id)));
-    }
-  };
-
-  const handleClearSelection = () => setSelectedIds(new Set());
-
-  const handleBatchConfirm = async () => {
-    if (!batchConfirmAction || selectedIds.size === 0) return;
-    clearActionFeedback();
-    try {
-      const result = await batchUpdate.mutateAsync({ ids: Array.from(selectedIds), action: batchConfirmAction });
-      if (result.updated > 0) {
-        setActionSuccess(`Updated ${result.updated} sample(s)`);
-        setTimeout(() => setActionSuccess(null), 3000);
-      }
-      if (result.failed.length > 0) {
-        setActionError(`${result.failed.length} sample(s) failed: ${result.failed.map((f) => f.error).join(', ')}`);
-      }
-      setSelectedIds(new Set());
-    } catch (err) {
-      console.error('Batch update failed:', err);
-      setActionError('Batch update failed');
-    } finally {
-      setBatchConfirmAction(null);
-    }
-  };
-
-  // WQ-196v2: load reset requests
-  const loadResetRequests = async () => {
-    try {
-      const res = await authApi.listResetRequests({ status: 'pending', limit: 50 });
-      setResetRequests(res.data);
-      setShowResetRequests(true);
-    } catch (err) {
-      console.error('Failed to load reset requests:', err);
-    }
-  };
-
-  const handleFulfillReset = async (id: string) => {
-    try {
-      const res = await authApi.fulfillResetRequest(id);
-      const request = resetRequests.find((r) => r.id === id);
-      const displayName = request?.user.username ?? 'unknown user';
-      // Keep card visible, show password inline
-      setFulfilledPasswords((prev) => ({ ...prev, [id]: { password: res.tempPassword, username: displayName } }));
-      setActionSuccess('Password reset fulfilled — copy the password below and send it securely.');
-      setTimeout(() => setActionSuccess(null), 8000);
-    } catch (err) {
-      console.error('Failed to fulfill reset request:', err);
-      setActionError('Failed to fulfill reset request');
-    }
-  };
-
-  const handleDismissReset = (id: string) => {
-    setResetRequests((prev) => prev.filter((r) => r.id !== id));
-    setFulfilledPasswords((prev) => {
-      const next = { ...prev };
-      delete next[id];
-      return next;
-    });
-  };
-
-  const handleRejectReset = async (id: string) => {
-    try {
-      await authApi.rejectResetRequest(id, 'Rejected by admin');
-      setResetRequests((prev) => prev.filter((r) => r.id !== id));
-      setActionSuccess('Reset request rejected');
-      setTimeout(() => setActionSuccess(null), 3000);
-    } catch (err) {
-      console.error('Failed to reject reset request:', err);
-      setActionError('Failed to reject reset request');
     }
   };
 
@@ -544,106 +467,24 @@ export default function AdminDashboard() {
       )}
 
       {/* WQ-195: Batch Action Bar */}
-      {selectedIds.size > 0 && (
-        <div className="batch-action-bar" role="region" aria-label="Batch actions">
-          <span className="batch-count" aria-live="polite">{selectedIds.size} sample(s) selected</span>
-          <button className="btn-approve" onClick={() => setBatchConfirmAction('approve')} disabled={batchUpdate.isPending}>✓ Approve All</button>
-          <button className="btn-reject" onClick={() => setBatchConfirmAction('reject')} disabled={batchUpdate.isPending}>✗ Reject All</button>
-          <button className="btn-revert" onClick={() => setBatchConfirmAction('revert')} disabled={batchUpdate.isPending}>↩ Revert All</button>
-          <button className="btn-clear" onClick={handleClearSelection} disabled={batchUpdate.isPending}>Clear</button>
-        </div>
-      )}
-
-      {/* WQ-195: Batch Confirmation Modal */}
-      {batchConfirmAction && (
-        <div className="modal-overlay" onClick={() => setBatchConfirmAction(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={`Batch ${batchConfirmAction}`}>
-            <h3>Confirm Batch {batchConfirmAction.charAt(0).toUpperCase() + batchConfirmAction.slice(1)}</h3>
-            <p>Are you sure you want to <strong>{batchConfirmAction}</strong> <strong>{selectedIds.size}</strong> sample(s)?</p>
-            <div className="modal-actions">
-              <button className="btn-cancel" onClick={() => setBatchConfirmAction(null)}>Cancel</button>
-              <button className={`btn-${batchConfirmAction === 'approve' ? 'approve' : batchConfirmAction === 'reject' ? 'reject' : 'revert'}`} onClick={handleBatchConfirm} disabled={batchUpdate.isPending}>
-                {batchUpdate.isPending ? 'Processing...' : `Confirm ${batchConfirmAction.charAt(0).toUpperCase() + batchConfirmAction.slice(1)}`}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <BatchActionBar
+        selectedIds={selectedIds}
+        setSelectedIds={setSelectedIds}
+        sampleCount={samples.length}
+        onSelectAll={handleSelectAll}
+        onSuccess={(msg) => { setActionSuccess(msg); setTimeout(() => setActionSuccess(null), 3000); }}
+        onError={(msg) => setActionError(msg)}
+      />
 
       </div>) : (
         <div id="users-tab" role="tabpanel">
           <AdminUsersTab />
 
           {/* WQ-196v2: Reset Requests Panel */}
-          <div className="admin-section" style={{ marginTop: 'var(--spacing-lg)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--spacing-md)' }}>
-              <h3>🔑 Password Reset Requests</h3>
-              {!showResetRequests ? (
-                <button className="btn-primary" onClick={loadResetRequests} style={{ fontSize: '0.8rem', padding: 'var(--spacing-xs) var(--spacing-md)' }}>
-                  View Requests
-                </button>
-              ) : (
-                <button className="btn-clear" onClick={() => setShowResetRequests(false)} style={{ fontSize: '0.8rem' }}>
-                  Hide
-                </button>
-              )}
-            </div>
-
-            {showResetRequests && (
-              <>
-                {resetRequests.length === 0 ? (
-                  <p style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: 'var(--spacing-lg)' }}>
-                    No pending reset requests.
-                  </p>
-                ) : (
-                  <div className="reset-requests-list">
-                    {resetRequests.map((req) => {
-                      const fulfilled = fulfilledPasswords[req.id];
-                      return (
-                        <div key={req.id} className="reset-request-card">
-                          <div className="reset-request-info">
-                            <strong>{req.user.username}</strong>
-                            {req.user.name && <span style={{ color: 'var(--color-text-muted)', marginLeft: 'var(--spacing-xs)' }}>({req.user.name})</span>}
-                            {req.reason && <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>"{req.reason}"</p>}
-                            <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-                              Requested {new Date(req.createdAt).toLocaleString()}
-                            </span>
-                            {fulfilled && (
-                              <div className="fulfilled-password-inline">
-                                <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>New password:</span>
-                                <code className="fulfilled-pw-text">{fulfilled.password}</code>
-                                <CopyButton
-                                  text={fulfilled.password}
-                                  label={`Copy password for ${fulfilled.username}`}
-                                  className="btn-copy-pw"
-                                />
-                              </div>
-                            )}
-                          </div>
-                          <div className="reset-request-actions">
-                            {!fulfilled ? (
-                              <>
-                                <button className="btn-approve" onClick={() => handleFulfillReset(req.id)} style={{ fontSize: '0.8rem' }}>
-                                  ✓ Fulfill
-                                </button>
-                                <button className="btn-reject" onClick={() => handleRejectReset(req.id)} style={{ fontSize: '0.8rem' }}>
-                                  ✗ Reject
-                                </button>
-                              </>
-                            ) : (
-                              <button className="btn-approve" onClick={() => handleDismissReset(req.id)} style={{ fontSize: '0.8rem' }}>
-                                Dismiss
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
+          <PasswordResetRequestsPanel
+            onSuccess={(msg) => { setActionSuccess(msg); setTimeout(() => setActionSuccess(null), 8000); }}
+            onError={(msg) => setActionError(msg)}
+          />
         </div>
       )}
 

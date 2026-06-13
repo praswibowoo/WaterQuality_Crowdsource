@@ -231,6 +231,41 @@
 
 ---
 
+## Milestone 19 Release Notes (v1.6.0)
+
+**New features:**
+- **WQ-195: Batch approve/reject/revert in admin** — Select multiple samples via checkboxes, bulk actions via sticky action bar
+- **WQ-196: Admin-mediated password reset** — Users request reset via `/forgot-password`; admin sees request in Users tab, generates temp password, communicates to user
+  - `mustChangePassword` flag forces user to change on next login
+  - Banner appears on every page until password is changed
+
+**Security hardening:**
+- Added `verifyMigrations()` startup check (fails fast on missing tables)
+- Added PostGIS extension check on startup
+- Production CSP warning when `CSP_ENFORCE_MODE` is not `true`
+- Self-reset guard prevents admin from locking themselves out
+
+**Bug fixes:**
+- Fulfilled password modal shows actual username (was showing UUID)
+- Banner disappears immediately after password change (local state synced)
+- `ChangePasswordPage` created for the mustChangePassword flow
+
+**Refactor:**
+- Extracted `useClipboard` hook + `CopyButton` component (3 call sites consolidated)
+- Extracted `mockSession` helper in test files (6 files deduplicated)
+- Removed dead `newPassword` param from `usersApi.resetPassword`
+
+**DevOps:**
+- Added `.dockerignore` files for faster Docker builds
+- Added production CSP warning in startup logs
+- SESSION_SECRET rotated (local only, was never in git)
+
+**Documentation:**
+- Added `docs/Tutorial_Deployment.md` (full deployment guide)
+- Updated `docs/Manual-QA-Checklist.md` with batch approval + password reset scenarios
+
+---
+
 ## Session Log
 
 > Full session history archived at `docs/progress-session-log-archive.md`. Recent entries only.
