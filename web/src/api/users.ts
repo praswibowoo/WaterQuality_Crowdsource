@@ -70,10 +70,10 @@ export const usersApi = {
     return response.data;
   },
 
-  async resetPassword(id: string, newPassword: string): Promise<{ message: string; tempPassword: string }> {
+  async resetPassword(id: string, newPassword?: string): Promise<{ message: string; tempPassword: string }> {
     const response = await apiClient.put<{ message: string; tempPassword: string }>(
       `/users/${id}/reset-password`,
-      { newPassword }
+      newPassword ? { newPassword } : {}
     );
     return response.data;
   },

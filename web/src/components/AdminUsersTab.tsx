@@ -4,11 +4,14 @@ import { usersApi, type AdminUser, type UsersFilters } from '../api/users';
 import { useUsers } from '../hooks/useUsers';
 import { useUsersCount } from '../hooks/useUsersCount';
 import { useDebounce } from '../hooks/useDebounce';
+import { useAuth } from '../contexts/AuthContext';
+import { copyToClipboard } from '../utils/clipboard';
 import ConfirmDialog from './ConfirmDialog';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
 export default function AdminUsersTab() {
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuth();
 
   // Search & sort state
   const [searchInput, setSearchInput] = useState('');
@@ -48,11 +51,10 @@ export default function AdminUsersTab() {
 
   // Reset password
   const [resetUser, setResetUser] = useState<AdminUser | null>(null);
-  const [rNew, setRNew] = useState('');
-  const [rConfirm, setRConfirm] = useState('');
+  const [rTempPassword, setRTempPassword] = useState<string | null>(null);
   const [rError, setRError] = useState<string | null>(null);
   const [rLoading, setRLoading] = useState(false);
-  const [rSuccess, setRSuccess] = useState(false);
+  const [rCopied, setRCopied] = useState(false);
 
   // Inline feedback
   const [toggleSuccess, setToggleSuccess] = useState<string | null>(null);
@@ -94,19 +96,19 @@ export default function AdminUsersTab() {
     }
   };
 
-  const handleReset = async (e: React.FormEvent) => {
-    e.preventDefault(); setRError(null); setRSuccess(false);
-    if (rNew !== rConfirm) { setRError('Passwords do not match'); return; }
-    if (rNew.length < 8) { setRError('Password must be at least 8 characters'); return; }
+  const handleConfirmReset = async () => {
     if (!resetUser) return;
+    setRError(null);
     setRLoading(true);
     try {
-      await usersApi.resetPassword(resetUser.id, rNew);
-      setRNew(''); setRConfirm('');
-      setRSuccess(true);
-      setTimeout(() => { setResetUser(null); setRSuccess(false); }, 2000);
-    } catch { setRError('Failed to reset password'); }
-    finally { setRLoading(false); }
+      const r = await usersApi.resetPassword(resetUser.id);
+      setRTempPassword(r.tempPassword);
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { error?: string; message?: string } } };
+      setRError(axiosErr?.response?.data?.message || axiosErr?.response?.data?.error || 'Failed to reset password');
+    } finally {
+      setRLoading(false);
+    }
   };
 
   const closeCreate = () => { setShowCreate(false); setTempPw(null); };
@@ -232,13 +234,17 @@ export default function AdminUsersTab() {
                     <td>{u._count?.samples ?? 0}</td>
                     <td className="user-actions">
                       {u.role === 'admin' ? (
-                        <button className="btn-tiny btn-green" onClick={() => setResetUser(u)} aria-label={`Reset password for ${u.username}`}>🔑 Password Reset Requests</button>
+                        u.id !== currentUser?.id && (
+                          <button className="btn-tiny btn-green" onClick={() => setResetUser(u)} aria-label={`Reset password for ${u.username}`}>🔑 Password Reset Requests</button>
+                        )
                       ) : (
                         <>
                           {u.active
                             ? <button className="btn-tiny btn-amber" onClick={() => handleToggleActive(u)} aria-label={`Deactivate ${u.username}`}>❌ Deactivate</button>
                             : <button className="btn-tiny btn-green" onClick={() => handleToggleActive(u)} aria-label={`Reactivate ${u.username}`}>✅ Reactivate</button>}
-                          <button className="btn-tiny btn-gray" onClick={() => setResetUser(u)} aria-label={`Reset password for ${u.username}`}>🔑 Password Reset Requests</button>
+                          {u.id !== currentUser?.id && (
+                            <button className="btn-tiny btn-gray" onClick={() => setResetUser(u)} aria-label={`Reset password for ${u.username}`}>🔑 Password Reset Requests</button>
+                          )}
                         </>
                       )}
                     </td>
@@ -276,7 +282,23 @@ export default function AdminUsersTab() {
       )}
 
       {showCreate && <CreateUserModal onClose={closeCreate} cName={cName} setCName={setCName} cUsername={cUsername} setCUsername={setCUsername} cPassword={cPassword} setCPassword={setCPassword} cRole={cRole} setCRole={setCRole} cError={cError} cLoading={cLoading} tempPw={tempPw} handleCreate={handleCreate} />}
-      {resetUser && <ResetPasswordModal resetUser={resetUser} onClose={() => { setResetUser(null); setRError(null); setRSuccess(false); }} onReset={handleReset} rNew={rNew} setRNew={setRNew} rConfirm={rConfirm} setRConfirm={setRConfirm} rError={rError} rLoading={rLoading} rSuccess={rSuccess} />}
+      {resetUser && (
+        <ResetPasswordModal
+          resetUser={resetUser}
+          onClose={() => {
+            setResetUser(null);
+            setRTempPassword(null);
+            setRError(null);
+            setRCopied(false);
+          }}
+          onConfirmReset={handleConfirmReset}
+          rTempPassword={rTempPassword}
+          rLoading={rLoading}
+          rError={rError}
+          rCopied={rCopied}
+          setRCopied={setRCopied}
+        />
+      )}
     </div>
   );
 }
@@ -320,33 +342,51 @@ function CreateUserModal({ onClose, cName, setCName, cUsername, setCUsername, cP
   );
 }
 
-function ResetPasswordModal({ resetUser, onClose, onReset, rNew, setRNew, rConfirm, setRConfirm, rError, rLoading, rSuccess }: {
+function ResetPasswordModal({ resetUser, onClose, onConfirmReset, rTempPassword, rLoading, rError, rCopied, setRCopied }: {
   resetUser: AdminUser;
   onClose: () => void;
-  onReset: (e: React.FormEvent) => void;
-  rNew: string; setRNew: (v: string) => void;
-  rConfirm: string; setRConfirm: (v: string) => void;
-  rError: string | null;
+  onConfirmReset: () => void;
+  rTempPassword: string | null;
   rLoading: boolean;
-  rSuccess: boolean;
+  rError: string | null;
+  rCopied: boolean;
+  setRCopied: (v: boolean) => void;
 }) {
   const containerRef = useFocusTrap(true, onClose);
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div ref={containerRef} className="modal-card" role="dialog" aria-modal="true" aria-label={`Reset password for ${resetUser.username}`} onClick={(e) => e.stopPropagation()} tabIndex={-1}>
-        <div className="modal-hdr"><h3>Reset Password — {resetUser.username}</h3><button className="modal-x" onClick={onClose} aria-label="Close reset password dialog">×</button></div>
-        {rSuccess ? (
+        <div className="modal-hdr"><h3>🔑 Reset Password — {resetUser.username}</h3><button className="modal-x" onClick={onClose} aria-label="Close reset password dialog">×</button></div>
+        {rTempPassword ? (
           <div className="temp-pw-box">
-            <p className="form-success" style={{ padding: '1rem', margin: 0 }}>✓ Password reset successfully</p>
-            <button className="btn-primary" onClick={onClose} style={{ marginTop: '1rem' }}>Done</button>
+            <p>Password reset successfully!</p>
+            <p style={{ color: '#dc2626', fontWeight: 600, fontSize: '0.85rem' }}>
+              ⚠️ Never email this password in plaintext.
+            </p>
+            <p className="temp-pw-label">New password (share with user):</p>
+            <div className="temp-pw-val">{rTempPassword}</div>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+              <button className="btn-primary" onClick={async () => { const ok = await copyToClipboard(rTempPassword); if (ok) { setRCopied(true); setTimeout(() => setRCopied(false), 2000); } }}>
+                {rCopied ? '✓ Copied' : '📋 Copy'}
+              </button>
+              <button className="btn-secondary" onClick={onClose}>Done</button>
+            </div>
+            <p className="temp-pw-note">This password will not be shown again.</p>
           </div>
         ) : (
-          <form onSubmit={onReset}>
-            <div className="input-group"><label>New Password</label><input type="password" value={rNew} onChange={(e) => setRNew(e.target.value)} placeholder="Min. 8 chars" required minLength={8} maxLength={128} /></div>
-            <div className="input-group"><label>Confirm</label><input type="password" value={rConfirm} onChange={(e) => setRConfirm(e.target.value)} placeholder="Re-enter" required minLength={8} maxLength={128} /></div>
-            {rError && <div className="form-error">{rError}</div>}
-            <button type="submit" className="btn-primary" disabled={rLoading}>{rLoading ? 'Resetting...' : 'Reset Password'}</button>
-          </form>
+          <div style={{ padding: '1rem' }}>
+            <p style={{ marginBottom: '1rem' }}>
+              Generate a new temporary password for <strong>{resetUser.username}</strong>?
+              Their existing sessions will be terminated.
+            </p>
+            {rError && <div className="form-error" style={{ marginBottom: '1rem' }}>{rError}</div>}
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+              <button className="btn-secondary" onClick={onClose} disabled={rLoading}>Cancel</button>
+              <button className="btn-primary" onClick={onConfirmReset} disabled={rLoading}>
+                {rLoading ? 'Resetting...' : 'Reset Password'}
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>

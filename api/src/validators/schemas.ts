@@ -116,7 +116,7 @@ export const updateUserSchema = z.object({
 });
 
 export const resetPasswordSchema = z.object({
-  newPassword: z.string().min(8, 'Password must be at least 8 characters').max(128, 'Password too long'),
+  newPassword: z.string().min(8, 'Password must be at least 8 characters').max(128, 'Password too long').optional(),
 });
 
 export const changePasswordSchema = z.object({

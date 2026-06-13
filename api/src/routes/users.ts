@@ -258,12 +258,16 @@ router.put(
     }
     const id = idResult.data;
 
-    const bodyResult = resetPasswordSchema.safeParse(req.body);
+    const bodyResult = resetPasswordSchema.safeParse(req.body ?? {});
     if (!bodyResult.success) {
       throw bodyResult.error;
     }
 
-    const { newPassword } = bodyResult.data;
+    // Prevent admin from resetting their own password
+    const authReq = req as AuthenticatedRequest;
+    if (id === authReq.auth?.userId) {
+      throw new AppError('Cannot reset your own password. Use the change-password page instead.', 400);
+    }
 
     // Check user exists
     const user = await prisma.userAccount.findUnique({
@@ -274,19 +278,20 @@ router.put(
       throw new AppError('User not found', 404);
     }
 
-    // Hash new password
-    const hashedPassword = await bcrypt.hash(newPassword, BCRYPT_COST);
+    // Always auto-generate a new password
+    const tempPassword = generateTempPassword();
+    const hashedPassword = await bcrypt.hash(tempPassword, BCRYPT_COST);
 
-    // Update password
+    // Update password + mustChangePassword flag
     await prisma.userAccount.update({
       where: { id },
-      data: { password: hashedPassword },
+      data: { password: hashedPassword, mustChangePassword: true },
     });
 
     // Kill all active sessions for this user (WQ-138)
     await killUserSessions(id);
 
-    // M1: Log the password reset event
+    // Audit log
     const ipAddress = req.ip || null;
     const userAgent = req.headers['user-agent'] || null;
     await prisma.loginLog.create({
@@ -295,6 +300,7 @@ router.put(
 
     res.json({
       message: 'Password reset successfully',
+      tempPassword,
     });
   })
 );
