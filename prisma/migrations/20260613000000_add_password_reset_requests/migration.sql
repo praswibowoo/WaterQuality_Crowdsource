@@ -6,14 +6,14 @@ ALTER TABLE "UserAccount" ADD COLUMN "mustChangePassword" BOOLEAN NOT NULL DEFAU
 
 -- CreateTable
 CREATE TABLE "PasswordResetRequest" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "userId" UUID NOT NULL,
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
     "reason" TEXT,
     "status" "ResetRequestStatus" NOT NULL DEFAULT 'pending',
     "rejectionReason" TEXT,
     "generatedPassword" TEXT,
     "resolvedAt" TIMESTAMP(3),
-    "resolvedById" UUID,
+    "resolvedById" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 

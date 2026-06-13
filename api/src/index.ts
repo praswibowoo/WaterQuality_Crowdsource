@@ -244,6 +244,22 @@ expireStaleResetRequests().catch((e) => {
   console.warn('Reset request expiry sweep failed (non-fatal):', e.message);
 });
 
+// Verify all critical tables exist before accepting requests (fail-fast)
+async function verifyMigrations(): Promise<void> {
+  const requiredTables = ['UserAccount', 'Sample', 'Photo', 'Location', 'LoginLog', 'PasswordResetRequest'];
+  for (const table of requiredTables) {
+    try {
+      await prisma.$queryRawUnsafe(`SELECT 1 FROM "${table}" LIMIT 1`);
+    } catch (err) {
+      console.error(`FATAL: Required table "${table}" is missing or inaccessible.`);
+      console.error(`Run: npx prisma migrate deploy`);
+      console.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
+      process.exit(1);
+    }
+  }
+  console.log('✓ Database schema verified (all required tables present)');
+}
+
 // Graceful shutdown — close Prisma connections
 process.on('SIGTERM', async () => {
   console.log('SIGTERM received. Shutting down gracefully...');
@@ -256,6 +272,9 @@ process.on('SIGINT', async () => {
   await prisma.$disconnect();
   process.exit(0);
 });
+
+// Verify schema before accepting requests
+verifyMigrations().catch(() => process.exit(1));
 
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);

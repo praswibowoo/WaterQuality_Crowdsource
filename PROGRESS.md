@@ -260,6 +260,7 @@
 | 2026-06-13 | Lead Manager | Post-hotfix test coverage gap | WQ-205, WQ-208 | Added 3 tests for POST /locations dedup (locations.test.ts) + 2 tests for copy-coords fallback (SampleDetail.test.tsx). Total: 289 tests. |
 | 2026-06-13 | Lead Manager | Implemented Milestone 19: Admin Productivity & Self-Service | WQ-195, WQ-196 | Batch approve/reject UI + admin-mediated password reset. New Prisma model (PasswordResetRequest), forgot-password endpoint, mustChangePassword flag. 289+ tests pass. |
 | 2026-06-13 | Lead Manager | Fixed Milestone 19 bugs | WQ-195, WQ-196 | H1: show username (not UUID) in fulfilled password modal. H2: enforce mustChangePassword with banner + /change-password page + clear on change. 289 tests pass. |
+| 2026-06-13 | Lead Manager | Fixed startup migration check | API | Added verifyMigrations() that fails fast if critical tables missing. Fixed migration SQL (text FK to match existing DB). Prevents silent breakage from unapplied migrations. |
 
 ---
 
