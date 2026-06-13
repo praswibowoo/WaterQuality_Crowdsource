@@ -85,6 +85,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       { currentPassword, newPassword },
       { withCredentials: true }
     );
+    // H2: Clear mustChangePassword flag in local state so banner disappears
+    setUser((prev) => prev ? { ...prev, mustChangePassword: false } : prev);
   }, []);
 
   const getLoginHistory = useCallback(async (): Promise<LoginLogEntry[]> => {

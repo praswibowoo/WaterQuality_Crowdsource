@@ -228,23 +228,7 @@ app.use('/api/v1/users', usersRouter);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-// Migration on startup
-migrateLocationsToPostGIS().catch((e) => {
-  console.warn('PostGIS location migration failed (non-fatal):', e.message);
-});
-
-// Create session userId index for efficient killOtherSessions queries
-addSessionIndex().catch((e) => {
-  console.warn('Session index creation failed (non-fatal):', e.message);
-});
-
-// Expire stale password reset requests on startup (WQ-196v2)
-import { expireStaleResetRequests } from './services/resetRequestExpiry';
-expireStaleResetRequests().catch((e) => {
-  console.warn('Reset request expiry sweep failed (non-fatal):', e.message);
-});
-
-// Verify all critical tables exist before accepting requests (fail-fast)
+// Verify all critical tables + PostGIS exist before accepting requests (fail-fast)
 async function verifyMigrations(): Promise<void> {
   const requiredTables = ['UserAccount', 'Sample', 'Photo', 'Location', 'LoginLog', 'PasswordResetRequest'];
   for (const table of requiredTables) {
@@ -257,7 +241,16 @@ async function verifyMigrations(): Promise<void> {
       process.exit(1);
     }
   }
-  console.log('✓ Database schema verified (all required tables present)');
+  // Verify PostGIS extension is installed (needed for spatial queries)
+  try {
+    await prisma.$queryRawUnsafe(`SELECT PostGIS_Version()`);
+  } catch (err) {
+    console.error('FATAL: PostGIS extension is not installed or inaccessible.');
+    console.error('Run: CREATE EXTENSION IF NOT EXISTS postgis;');
+    console.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
+  }
+  console.log('✓ Database schema verified (all required tables + PostGIS present)');
 }
 
 // Graceful shutdown — close Prisma connections
@@ -273,13 +266,37 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
-// Verify schema before accepting requests
-verifyMigrations().catch(() => process.exit(1));
+// Start server after verifying schema
+async function start(): Promise<void> {
+  // H1+M1+M2: Verify schema FIRST, before other startup sweeps
+  await verifyMigrations();
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server is running on port ${PORT}`);
-  console.log(`📚 API available at http://localhost:${PORT}/api/v1`);
-  console.log(`📖 API Docs at http://localhost:${PORT}/api/docs`);
+  // Run startup sweeps (safe — we know tables exist)
+  migrateLocationsToPostGIS().catch((e) => {
+    console.warn('PostGIS location migration failed (non-fatal):', e.message);
+  });
+
+  addSessionIndex().catch((e) => {
+    console.warn('Session index creation failed (non-fatal):', e.message);
+  });
+
+  // WQ-196v2: Expire stale password reset requests
+  // Lazy import to avoid circular dependency at module level
+  const { expireStaleResetRequests } = await import('./services/resetRequestExpiry');
+  expireStaleResetRequests().catch((e) => {
+    console.warn('Reset request expiry sweep failed (non-fatal):', e.message);
+  });
+
+  app.listen(PORT, () => {
+    console.log(`🚀 Server is running on port ${PORT}`);
+    console.log(`📚 API available at http://localhost:${PORT}/api/v1`);
+    console.log(`📖 API Docs at http://localhost:${PORT}/api/docs`);
+  });
+}
+
+start().catch((e) => {
+  console.error('FATAL: Server startup failed:', e instanceof Error ? e.message : String(e));
+  process.exit(1);
 });
 
 export default app;
