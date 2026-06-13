@@ -51,8 +51,8 @@ export default function AdminDashboard() {
   // WQ-196v2: reset requests state
   const [resetRequests, setResetRequests] = useState<ResetRequest[]>([]);
   const [showResetRequests, setShowResetRequests] = useState(false);
-  const [fulfilledPassword, setFulfilledPassword] = useState<{ password: string; username: string } | null>(null);
-  const [copiedPw, setCopiedPw] = useState(false);
+  const [fulfilledPasswords, setFulfilledPasswords] = useState<Record<string, { password: string; username: string }>>({});
+  const [copiedPwId, setCopiedPwId] = useState<string | null>(null);
 
   const clearActionFeedback = () => {
     setActionError(null);
@@ -116,14 +116,23 @@ export default function AdminDashboard() {
       const res = await authApi.fulfillResetRequest(id);
       const request = resetRequests.find((r) => r.id === id);
       const displayName = request?.user.username ?? 'unknown user';
-      setFulfilledPassword({ password: res.tempPassword, username: displayName });
-      setResetRequests((prev) => prev.filter((r) => r.id !== id));
-      setActionSuccess('Password reset fulfilled');
-      setTimeout(() => setActionSuccess(null), 3000);
+      // Keep card visible, show password inline
+      setFulfilledPasswords((prev) => ({ ...prev, [id]: { password: res.tempPassword, username: displayName } }));
+      setActionSuccess('Password reset fulfilled — copy the password below and send it securely.');
+      setTimeout(() => setActionSuccess(null), 8000);
     } catch (err) {
       console.error('Failed to fulfill reset request:', err);
       setActionError('Failed to fulfill reset request');
     }
+  };
+
+  const handleDismissReset = (id: string) => {
+    setResetRequests((prev) => prev.filter((r) => r.id !== id));
+    setFulfilledPasswords((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
   };
 
   const handleRejectReset = async (id: string) => {
@@ -589,71 +598,59 @@ export default function AdminDashboard() {
                   </p>
                 ) : (
                   <div className="reset-requests-list">
-                    {resetRequests.map((req) => (
-                      <div key={req.id} className="reset-request-card">
-                        <div className="reset-request-info">
-                          <strong>{req.user.username}</strong>
-                          {req.user.name && <span style={{ color: 'var(--color-text-muted)', marginLeft: 'var(--spacing-xs)' }}>({req.user.name})</span>}
-                          {req.reason && <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>"{req.reason}"</p>}
-                          <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-                            Requested {new Date(req.createdAt).toLocaleString()}
-                          </span>
+                    {resetRequests.map((req) => {
+                      const fulfilled = fulfilledPasswords[req.id];
+                      return (
+                        <div key={req.id} className="reset-request-card">
+                          <div className="reset-request-info">
+                            <strong>{req.user.username}</strong>
+                            {req.user.name && <span style={{ color: 'var(--color-text-muted)', marginLeft: 'var(--spacing-xs)' }}>({req.user.name})</span>}
+                            {req.reason && <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>"{req.reason}"</p>}
+                            <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                              Requested {new Date(req.createdAt).toLocaleString()}
+                            </span>
+                            {fulfilled && (
+                              <div className="fulfilled-password-inline">
+                                <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>New password:</span>
+                                <code className="fulfilled-pw-text">{fulfilled.password}</code>
+                                <button
+                                  className="btn-copy-pw"
+                                  onClick={async () => {
+                                    const ok = await copyToClipboard(fulfilled.password);
+                                    setCopiedPwId(ok ? req.id : null);
+                                    if (ok) setTimeout(() => setCopiedPwId(null), 2000);
+                                  }}
+                                  aria-label="Copy password to clipboard"
+                                >
+                                  {copiedPwId === req.id ? '✓ Copied' : '📋 Copy'}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                          <div className="reset-request-actions">
+                            {!fulfilled ? (
+                              <>
+                                <button className="btn-approve" onClick={() => handleFulfillReset(req.id)} style={{ fontSize: '0.8rem' }}>
+                                  ✓ Fulfill
+                                </button>
+                                <button className="btn-reject" onClick={() => handleRejectReset(req.id)} style={{ fontSize: '0.8rem' }}>
+                                  ✗ Reject
+                                </button>
+                              </>
+                            ) : (
+                              <button className="btn-approve" onClick={() => handleDismissReset(req.id)} style={{ fontSize: '0.8rem' }}>
+                                Dismiss
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        <div className="reset-request-actions">
-                          <button className="btn-approve" onClick={() => handleFulfillReset(req.id)} style={{ fontSize: '0.8rem' }}>
-                            ✓ Fulfill
-                          </button>
-                          <button className="btn-reject" onClick={() => handleRejectReset(req.id)} style={{ fontSize: '0.8rem' }}>
-                            ✗ Reject
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </>
             )}
           </div>
-
-          {/* WQ-196v2: Fulfilled Password Modal */}
-          {fulfilledPassword && (
-            <div className="modal-overlay" onClick={() => setFulfilledPassword(null)}>
-              <div className="modal-content" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Password reset fulfilled">
-                <h3>🔑 New Password Generated</h3>
-                <p style={{ color: '#dc2626', fontWeight: 600, marginBottom: 'var(--spacing-sm)' }}>
-                  ⚠️ Never email this password in plaintext.
-                </p>
-                <p>Communicate the new password to the user via:</p>
-                <ul style={{ margin: 'var(--spacing-sm) 0' }}>
-                  <li>In-person meeting</li>
-                  <li>Phone call</li>
-                  <li>Your team's secure messaging app</li>
-                </ul>
-                <div style={{ background: '#f0fdfa', border: '1px solid #99f6e4', borderRadius: '8px', padding: 'var(--spacing-md)', margin: 'var(--spacing-md) 0' }}>
-                  <label style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>New password:</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', marginTop: '4px' }}>
-                    <code style={{ flex: 1, fontSize: '1.1rem', fontWeight: 600, wordBreak: 'break-all' }}>
-                      {fulfilledPassword.password}
-                    </code>
-                    <button
-                      className="btn-copy-pw"
-                      onClick={async () => {
-                        const ok = await copyToClipboard(fulfilledPassword.password);
-                        setCopiedPw(ok);
-                        if (ok) setTimeout(() => setCopiedPw(false), 2000);
-                      }}
-                      aria-label="Copy password to clipboard"
-                    >
-                      {copiedPw ? '✓ Copied' : '📋 Copy'}
-                    </button>
-                  </div>
-                </div>
-                <div className="modal-actions">
-                  <button className="btn-primary" onClick={() => setFulfilledPassword(null)}>Mark as Delivered</button>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       )}
 
@@ -1351,6 +1348,23 @@ export default function AdminDashboard() {
           flex-shrink: 0;
         }
         .btn-copy-pw:hover { background: #0f766e; }
+
+        .fulfilled-password-inline {
+          display: flex;
+          align-items: center;
+          gap: var(--spacing-sm);
+          margin-top: var(--spacing-sm);
+          padding: var(--spacing-sm);
+          background: #f0fdfa;
+          border: 1px solid #99f6e4;
+          border-radius: var(--radius-md);
+        }
+        .fulfilled-pw-text {
+          flex: 1;
+          font-size: 0.95rem;
+          font-weight: 600;
+          word-break: break-all;
+        }
       `}</style>
     </div>
   );
