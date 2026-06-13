@@ -257,6 +257,7 @@
 | 2026-06-11 | Developer | WQ-200/WQ-201 quick wins | WQ-200, WQ-201 | Copy coordinates button + Ctrl+Enter submit. 131/131 tests pass. |
 | 2026-06-13 | Lead Manager | Deep security + correctness audit (18 findings) | H1–H5, M1–M8, L1–L5 | Full codebase audit: 5 High, 8 Medium, 5 Low. No Blocker-severity bugs. Created Hotfix v1.5.1 spec at docs/hotfix-v1.5.1-spec.md. Registered WQ-203 to WQ-208. |
 | 2026-06-13 | Lead Manager | Implemented Hotfix v1.5.1 | WQ-203 to WQ-208 | Fixed 6 issues: health check, IP spoofing, location dedup, CSV export cap, bcrypt cost, clipboard fallback. 284/284 tests pass. |
+| 2026-06-13 | Lead Manager | Post-hotfix test coverage gap | WQ-205, WQ-208 | Added 3 tests for POST /locations dedup (locations.test.ts) + 2 tests for copy-coords fallback (SampleDetail.test.tsx). Total: 289 tests. |
 
 ---
 
@@ -333,13 +334,13 @@ water-quality-crowdsource/
 - `npm run lint`: ✅ Pass
 - `npm run typecheck`: ✅ Pass
 - `npm run build`: ✅ Pass
-- `npm run test`: ✅ 131/131 tests pass
+- `npm run test`: ✅ 133/133 tests pass
 
 ### Backend (api/)
 - `npm run lint`: ✅ Pass
 - `npm run typecheck`: ✅ Pass
 - `npm run build`: ✅ Pass
-- `npm run test`: ✅ 153/153 tests pass (total: 284)
+- `npm run test`: ✅ 156/156 tests pass (total: 289)
 
 ### Milestone 14 (v1.3.1 Security Hardening)
 - WQ-155: CSP nonce-based (removed `'unsafe-inline'` from scriptSrc)

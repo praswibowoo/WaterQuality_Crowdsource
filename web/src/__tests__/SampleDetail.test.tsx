@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen } from '@testing-library/react';
+import { screen, fireEvent } from '@testing-library/react';
 import { renderWithProviders, createMockSample } from './helpers/test-utils';
 
 // Mock useSamples hooks
@@ -26,6 +26,12 @@ vi.mock('../components/QualityScoreBreakdown', () => ({
   default: () => <div data-testid="quality-score-breakdown" />,
 }));
 
+// Mock clipboard utility — jsdom doesn't have navigator.clipboard or execCommand
+vi.mock('../utils/clipboard', () => ({
+  copyToClipboard: vi.fn(),
+}));
+
+import { copyToClipboard } from '../utils/clipboard';
 import SampleDetail from '../components/SampleDetail';
 
 describe('SampleDetail', () => {
@@ -131,5 +137,38 @@ describe('SampleDetail', () => {
     renderWithProviders(<SampleDetail />, { initialEntries: ['/sample/test-id'] });
 
     expect(screen.getByTestId('quality-score-badge')).toHaveTextContent('0.92');
+  });
+
+  // WQ-208: copy-coords button tests
+  it('copy coords: copyToClipboard succeeds — shows Copied', async () => {
+    const sample = createMockSample();
+    mockUseSample.mockReturnValue({ data: sample, isLoading: false, error: null } as never);
+    vi.mocked(copyToClipboard).mockResolvedValue(true);
+
+    renderWithProviders(<SampleDetail />, { initialEntries: ['/sample/test-id'] });
+
+    const copyBtn = screen.getByRole('button', { name: /copy coordinates/i });
+    fireEvent.click(copyBtn);
+
+    // Allow async state update
+    await vi.waitFor(() => {
+      expect(copyBtn).toHaveTextContent('✓ Copied');
+    });
+  });
+
+  it('copy coords: copyToClipboard fails — shows Copy failed', async () => {
+    const sample = createMockSample();
+    mockUseSample.mockReturnValue({ data: sample, isLoading: false, error: null } as never);
+    vi.mocked(copyToClipboard).mockResolvedValue(false);
+
+    renderWithProviders(<SampleDetail />, { initialEntries: ['/sample/test-id'] });
+
+    const copyBtn = screen.getByRole('button', { name: /copy coordinates/i });
+    fireEvent.click(copyBtn);
+
+    // Allow async state update
+    await vi.waitFor(() => {
+      expect(copyBtn).toHaveTextContent('Copy failed');
+    });
   });
 });
