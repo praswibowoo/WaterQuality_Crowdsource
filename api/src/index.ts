@@ -53,6 +53,9 @@ if (trustProxyEnabled) {
   app.set('trust proxy', 1);
 } else if (process.env.NODE_ENV === 'production') {
   console.warn('WARNING: TRUST_PROXY is not set to "true". LoginLog.ipAddress will show the raw socket peer instead of the real client IP behind the reverse proxy. Set TRUST_PROXY=true in production.');
+  if (process.env.CSP_ENFORCE_MODE !== 'true') {
+    console.warn('WARNING: CSP_ENFORCE_MODE is not "true". CSP is in report-only mode — violations are logged but NOT blocked. Set CSP_ENFORCE_MODE=true in production.');
+  }
 }
 
 // CORS configuration - fail-closed if env var missing
