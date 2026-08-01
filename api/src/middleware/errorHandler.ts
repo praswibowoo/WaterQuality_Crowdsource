@@ -34,6 +34,16 @@ export const errorHandler = (
     return;
   }
 
+  // Handle JSON parse errors (malformed request body)
+  const maybeSyntaxError = err as { type?: string; statusCode?: number };
+  if (maybeSyntaxError.type === 'entity.parse.failed') {
+    res.status(400).json({
+      error: 'Bad Request',
+      message: 'Invalid JSON in request body',
+    });
+    return;
+  }
+
   // Handle custom AppError
   if (err instanceof AppError) {
     res.status(err.statusCode).json({

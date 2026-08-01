@@ -16,8 +16,8 @@ jest.mock('../../db/prisma', () => {
   };
 });
 
-import { calculateQualityScore } from '../qualityScoring';
-import prisma from '../../db/prisma';
+import { calculateQualityScore } from '../qualityScoring.js';
+import prisma from '../../db/prisma.js';
 
 const mockFindUnique = prisma.sample.findUnique as jest.Mock;
 const mockQueryRaw = prisma.$queryRaw as jest.Mock;

@@ -1,8 +1,8 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import express from 'express';
 import request from 'supertest';
-import { errorHandler, notFoundHandler } from '../middleware/errorHandler';
-import { mockSession } from './helpers/setup';
+import { errorHandler, notFoundHandler } from '../middleware/errorHandler.js';
+import { mockSession } from './helpers/setup.js';
 
 const TEST_USER_ID = '00000000-0000-0000-0000-000000000001';
 const TEST_ADMIN_ID = '00000000-0000-0000-0000-000000000002';

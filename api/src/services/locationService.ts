@@ -1,4 +1,5 @@
-import prisma from '../db/prisma';
+import { Prisma } from '@prisma/client';
+import prisma from '../db/prisma.js';
 
 // Location deduplication radius in meters
 export const LOCATION_DEDUP_RADIUS_METERS = 10;
@@ -19,7 +20,7 @@ export async function findOrCreateLocation(
   lng: number,
   address?: string
 ): Promise<FindOrCreateLocationResult> {
-  return await prisma.$transaction(async (tx) => {
+  return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // Try to find an existing location within the radius using PostGIS
     const existing = await tx.$queryRaw<Array<{ id: string }>>`
       SELECT id FROM "Location"

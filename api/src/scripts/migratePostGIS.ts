@@ -1,4 +1,4 @@
-import prisma from '../db/prisma';
+import prisma from '../db/prisma.js';
 
 export async function migrateLocationsToPostGIS(): Promise<number> {
   console.log('Migrating existing locations to PostGIS geography column...');

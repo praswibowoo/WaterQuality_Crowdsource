@@ -1,5 +1,5 @@
-import prisma from '../db/prisma';
-import { MEASUREMENT_RANGES, MEASUREMENT_KEYS, isValidMeasurementKey, queryNeighborStats } from './sqlHelpers';
+import prisma from '../db/prisma.js';
+import { MEASUREMENT_RANGES, MEASUREMENT_KEYS, isValidMeasurementKey, queryNeighborStats } from './sqlHelpers.js';
 
 const SPATIAL_RADIUS_METERS = 500;
 const GPS_PENALTY_THRESHOLD = 100;

@@ -118,7 +118,7 @@ export const samplesApi = {
     const formData = new FormData();
     files.forEach((file) => formData.append('photos', file));
     const response = await apiClient.post<Photo[]>(`/samples/${sampleId}/photos`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: { 'Content-Type': undefined },
       timeout: 30000,
     });
     return response.data;

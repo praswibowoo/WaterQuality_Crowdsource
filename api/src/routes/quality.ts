@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
-import { asyncHandler, AppError } from '../middleware/errorHandler';
-import { sendSuccess } from '../middleware/responseEnvelope';
-import { calculateQualityScore } from '../services/qualityScoring';
-import { uuidParam } from '../validators/schemas';
+import { asyncHandler, AppError } from '../middleware/errorHandler.js';
+import { sendSuccess } from '../middleware/responseEnvelope.js';
+import { calculateQualityScore } from '../services/qualityScoring.js';
+import { uuidParam } from '../validators/schemas.js';
 
 const router = Router();
 

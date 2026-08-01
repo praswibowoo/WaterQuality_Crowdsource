@@ -2,8 +2,8 @@ import { describe, it, expect, jest } from '@jest/globals';
 import {
   nearbyLocationsSchema,
   nearbySamplesSchema,
-} from '../validators/schemas';
-import { sendSuccess, sendError } from '../middleware/responseEnvelope';
+} from '../validators/schemas.js';
+import { sendSuccess, sendError } from '../middleware/responseEnvelope.js';
 import type { Response } from 'express';
 
 function mockResponse() {
@@ -164,7 +164,7 @@ jest.mock('../scripts/migratePostGIS', () => ({
   migrateLocationsToPostGIS: jest.fn<() => Promise<number>>().mockResolvedValue(0),
 }));
 
-import { migrateLocationsToPostGIS } from '../scripts/migratePostGIS';
+import { migrateLocationsToPostGIS } from '../scripts/migratePostGIS.js';
 
 describe('Migration Safety', () => {
   it('migration script handles already-migrated locations gracefully', async () => {

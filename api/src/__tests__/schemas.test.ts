@@ -3,7 +3,7 @@ import {
   createSampleSchema,
   updateSampleSchema,
   getSamplesQuerySchema,
-} from '../validators/schemas';
+} from '../validators/schemas.js';
 
 describe('Zod Validation Schemas', () => {
   describe('createSampleSchema', () => {

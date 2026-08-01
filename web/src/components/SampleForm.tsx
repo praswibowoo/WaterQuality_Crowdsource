@@ -321,9 +321,11 @@ export default function SampleForm() {
         setUploadProgress(true);
         try {
           const files = photos.map((p) => p.file);
-          const compressedFiles = await Promise.all(
-            files.map((file) => compressImage(file))
-          );
+          // Compress sequentially to avoid web worker race condition
+          const compressedFiles: File[] = [];
+          for (const file of files) {
+            compressedFiles.push(await compressImage(file));
+          }
           await samplesApi.uploadPhotos(result.serverId, compressedFiles);
         } catch (photoError) {
           console.error('Photo upload failed (data was saved):', photoError);

@@ -1,6 +1,6 @@
 import { Request } from 'express';
-import { AppError } from './errorHandler';
-import { type AuthenticatedRequest } from './auth';
+import { AppError } from './errorHandler.js';
+import { type AuthenticatedRequest } from './auth.js';
 
 /**
  * Check that the current user owns the entity or is an admin.

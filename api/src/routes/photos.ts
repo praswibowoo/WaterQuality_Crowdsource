@@ -4,12 +4,12 @@ import path from 'path';
 import fs from 'fs/promises';
 import { existsSync } from 'fs';
 import { randomUUID } from 'crypto';
-import prisma from '../db/prisma';
-import { asyncHandler, AppError } from '../middleware/errorHandler';
-import { authMiddleware } from '../middleware/auth';
-import { requireOwnershipOrAdmin } from '../middleware/photoOwnership';
-import { recalculateScore } from '../services/qualityScoring';
-import { uuidParam } from '../validators/schemas';
+import prisma from '../db/prisma.js';
+import { asyncHandler, AppError } from '../middleware/errorHandler.js';
+import { authMiddleware } from '../middleware/auth.js';
+import { requireOwnershipOrAdmin } from '../middleware/photoOwnership.js';
+import { recalculateScore } from '../services/qualityScoring.js';
+import { uuidParam } from '../validators/schemas.js';
 
 const router = Router();
 
@@ -39,8 +39,8 @@ const upload = multer({
   },
 });
 
-// Serve uploaded files statically (with path traversal protection + auth required)
-router.get('/uploads/:filename', authMiddleware, (req, res) => {
+// Serve uploaded files publicly (with path traversal protection)
+router.get('/uploads/:filename', (req, res) => {
   const { filename } = req.params;
 
   // Reject path separators or traversal attempts

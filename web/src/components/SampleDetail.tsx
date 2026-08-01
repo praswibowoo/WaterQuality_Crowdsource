@@ -306,12 +306,12 @@ export const SampleDetail = () => {
                     src={`/api/v1/uploads/${photo.path}`}
                     alt={photo.caption || 'Sample photo'}
                     loading="lazy"
-                    width={120}
-                    height={120}
+                    width={200}
+                    height={200}
                     onError={(e) => {
                       const img = e.target as HTMLImageElement;
                       img.onerror = null;
-                      img.src = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" fill="%239ca3af" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>');
+                      img.src = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" fill="%239ca3af" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>');
                       img.alt = 'Photo failed to load';
                     }}
                   />
@@ -596,7 +596,7 @@ export const SampleDetail = () => {
         /* Photo Gallery */
         .photo-gallery {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
           gap: var(--spacing-md);
         }
 

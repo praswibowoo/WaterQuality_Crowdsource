@@ -1,4 +1,4 @@
-import prisma from '../db/prisma';
+import prisma from '../db/prisma.js';
 
 // Measurement validation ranges (mirrors web/src/utils/measurements.ts)
 export const MEASUREMENT_RANGES: Record<string, { min: number; max: number }> = {

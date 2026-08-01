@@ -1,4 +1,4 @@
-import prisma from '../db/prisma';
+import prisma from '../db/prisma.js';
 
 async function addSessionIndex(): Promise<void> {
   try {

@@ -1,9 +1,9 @@
 import { Router, Request, Response } from 'express';
-import prisma from '../db/prisma';
-import { asyncHandler, AppError } from '../middleware/errorHandler';
-import { authMiddleware } from '../middleware/auth';
-import { findOrCreateLocation } from '../services/locationService';
-import { createLocationSchema, uuidParam } from '../validators/schemas';
+import prisma from '../db/prisma.js';
+import { asyncHandler, AppError } from '../middleware/errorHandler.js';
+import { authMiddleware } from '../middleware/auth.js';
+import { findOrCreateLocation } from '../services/locationService.js';
+import { createLocationSchema, uuidParam } from '../validators/schemas.js';
 
 const router = Router();
 

@@ -17,7 +17,7 @@
     "db:seed": "cd prisma && npx prisma db seed"
   },
   "prisma": {
-    "seed": "ts-node seed.ts"
+    "seed": "npx tsx seed.ts"
   },
   "devDependencies": {
     "@types/node": "^25.9.1",

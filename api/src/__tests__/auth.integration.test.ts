@@ -1,8 +1,8 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import request from 'supertest';
 import express from 'express';
-import { errorHandler, notFoundHandler } from '../middleware/errorHandler';
-import { mockSession } from './helpers/setup';
+import { errorHandler, notFoundHandler } from '../middleware/errorHandler.js';
+import { mockSession } from './helpers/setup.js';
 
 // Mock Prisma
 const mockPrisma = {

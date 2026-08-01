@@ -1,5 +1,5 @@
 import { describe, it, expect } from '@jest/globals';
-import { loginSchema, registerSchema, changePasswordSchema, createUserSchema, updateUserSchema, resetPasswordSchema } from '../validators/schemas';
+import { loginSchema, registerSchema, changePasswordSchema, createUserSchema, updateUserSchema, resetPasswordSchema } from '../validators/schemas.js';
 
 describe('Login Schema', () => {
   it('should validate valid credentials', () => {

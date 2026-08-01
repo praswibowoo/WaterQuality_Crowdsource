@@ -1,5 +1,5 @@
 import express, { Express, Request, Response, NextFunction } from 'express';
-import { errorHandler, notFoundHandler } from '../../middleware/errorHandler';
+import { errorHandler, notFoundHandler } from '../../middleware/errorHandler.js';
 
 // UUID for test users
 export const TEST_USER_ID = '00000000-0000-0000-0000-000000000001';

@@ -1,10 +1,11 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import prisma from '../db/prisma';
-import { asyncHandler, AppError } from '../middleware/errorHandler';
-import { adminMiddleware, type AuthenticatedRequest } from '../middleware/auth';
-import { createUserSchema, updateUserSchema, resetPasswordSchema, uuidParam, getUsersQuerySchema } from '../validators/schemas';
-import { BCRYPT_COST, generateTempPassword } from '../constants';
+import { Prisma } from '@prisma/client';
+import prisma from '../db/prisma.js';
+import { asyncHandler, AppError } from '../middleware/errorHandler.js';
+import { adminMiddleware, type AuthenticatedRequest } from '../middleware/auth.js';
+import { createUserSchema, updateUserSchema, resetPasswordSchema, uuidParam, getUsersQuerySchema } from '../validators/schemas.js';
+import { BCRYPT_COST, generateTempPassword } from '../constants.js';
 
 // Allowed sort fields for user queries (WQ-137)
 const ALLOWED_SORT_FIELDS = ['name', 'username', 'role', 'createdAt'] as const;
@@ -209,7 +210,7 @@ router.put(
     }
 
     // Atomic check + update in transaction to prevent race condition
-    const updated = await prisma.$transaction(async (tx) => {
+    const updated = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // Prevent deactivating the last admin
       if (active === false && user.role === 'admin') {
         const adminCount = await tx.userAccount.count({
@@ -296,7 +297,7 @@ router.put(
     const userAgent = req.headers['user-agent'] || null;
     await prisma.loginLog.create({
       data: { userId: id, action: 'password_change', ipAddress, userAgent },
-    }).catch((err) => console.warn('Failed to log password reset:', err));
+    }).catch((err: unknown) => console.warn('Failed to log password reset:', err));
 
     res.json({
       message: 'Password reset successfully',

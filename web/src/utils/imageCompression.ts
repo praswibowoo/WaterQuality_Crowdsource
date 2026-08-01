@@ -1,17 +1,9 @@
 /**
- * Image compression using Web Worker with inline Canvas fallback.
+ * Image compression using Canvas (inline, no web worker).
  */
 
-let compressionWorker: Worker | null = null;
-
-function getWorker(): Worker | null {
-  if (compressionWorker) return compressionWorker;
-  try {
-    compressionWorker = new Worker('/workers/image-compressor.worker.js');
-    return compressionWorker;
-  } catch {
-    return null;
-  }
+export async function compressImage(file: File, maxWidth: number = 1920): Promise<File> {
+  return compressImageInline(file, maxWidth);
 }
 
 async function compressImageInline(file: File, maxWidth: number = 1920): Promise<File> {
@@ -49,37 +41,4 @@ async function compressImageInline(file: File, maxWidth: number = 1920): Promise
     };
     reader.readAsDataURL(file);
   });
-}
-
-export async function compressImage(file: File, maxWidth: number = 1920): Promise<File> {
-  const worker = getWorker();
-  if (!worker) {
-    return compressImageInline(file, maxWidth);
-  }
-
-  try {
-    const imageBitmap = await createImageBitmap(file);
-    const compressedBlob = await new Promise<Blob | null>((resolve) => {
-      const handler = (e: MessageEvent) => {
-        worker.removeEventListener('message', handler);
-        if (e.data.fallback) {
-          resolve(null);
-        } else {
-          resolve(e.data.blob);
-        }
-      };
-      worker.addEventListener('message', handler);
-      worker.postMessage({ imageBitmap, maxWidth, format: file.type, quality: 0.85 });
-    });
-
-    imageBitmap.close();
-
-    if (compressedBlob) {
-      return new File([compressedBlob], file.name, { type: file.type });
-    }
-  } catch {
-    // Worker compression failed, fall back to inline
-  }
-
-  return compressImageInline(file, maxWidth);
 }

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import prisma from '../db/prisma';
+import prisma from '../db/prisma.js';
 
 export interface AuthenticatedRequest extends Request {
   auth?: {

@@ -1,11 +1,12 @@
 import { Router, Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs/promises';
-import prisma from '../db/prisma';
-import { asyncHandler, AppError } from '../middleware/errorHandler';
-import { authMiddleware, adminMiddleware, type AuthenticatedRequest } from '../middleware/auth';
-import { recalculateScore } from '../services/qualityScoring';
-import { findOrCreateLocation } from '../services/locationService';
+import { Prisma } from '@prisma/client';
+import prisma from '../db/prisma.js';
+import { asyncHandler, AppError } from '../middleware/errorHandler.js';
+import { authMiddleware, adminMiddleware, type AuthenticatedRequest } from '../middleware/auth.js';
+import { recalculateScore } from '../services/qualityScoring.js';
+import { findOrCreateLocation } from '../services/locationService.js';
 import {
   createSampleSchema,
   updateSampleSchema,
@@ -13,7 +14,7 @@ import {
   markersQuerySchema,
   batchUpdateSchema,
   uuidParam,
-} from '../validators/schemas';
+} from '../validators/schemas.js';
 
 const router = Router();
 
@@ -488,7 +489,7 @@ router.post(
     const targetStatus = action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : 'pending';
 
     // Update all samples in a single transaction
-    const updated = await prisma.$transaction(async (tx) => {
+    const updated = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       let updatedCount = 0;
       const failed: Array<{ id: string; error: string }> = [];
 

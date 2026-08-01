@@ -1,10 +1,10 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import prisma from '../db/prisma';
-import { asyncHandler, AppError } from '../middleware/errorHandler';
-import { authMiddleware, adminMiddleware, type AuthenticatedRequest } from '../middleware/auth';
-import { loginSchema, changePasswordSchema, registerSchema, forgotPasswordSchema, rejectResetRequestSchema, resetRequestsQuerySchema, uuidParam } from '../validators/schemas';
-import { BCRYPT_COST, generateTempPassword } from '../constants';
+import prisma from '../db/prisma.js';
+import { asyncHandler, AppError } from '../middleware/errorHandler.js';
+import { authMiddleware, adminMiddleware, type AuthenticatedRequest } from '../middleware/auth.js';
+import { loginSchema, changePasswordSchema, registerSchema, forgotPasswordSchema, rejectResetRequestSchema, resetRequestsQuerySchema, uuidParam } from '../validators/schemas.js';
+import { BCRYPT_COST, generateTempPassword } from '../constants.js';
 
 const router = Router();
 

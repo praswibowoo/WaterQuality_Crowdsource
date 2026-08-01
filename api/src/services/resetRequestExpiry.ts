@@ -1,5 +1,5 @@
-import prisma from '../db/prisma';
-import { PASSWORD_RESET_TTL_MS } from '../constants';
+import prisma from '../db/prisma.js';
+import { PASSWORD_RESET_TTL_MS } from '../constants.js';
 
 /**
  * Expire stale password reset requests (WQ-196v2).
