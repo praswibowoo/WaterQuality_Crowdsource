@@ -715,7 +715,7 @@ export default function SampleForm() {
             <h3 className="section-title">🔬 Ion-Selective Electrodes (ISE)</h3>
             <div className="input-row input-row-2 mb-md">
               <div className="input-group">
-                <label htmlFor="nitrate">Nitrate ({MEASUREMENT_FIELDS.nitrate.unit})</label>
+                <label htmlFor="nitrate">{MEASUREMENT_FIELDS.nitrate.label} ({MEASUREMENT_FIELDS.nitrate.unit})</label>
                 <input
                   type="number"
                   id="nitrate"
@@ -731,7 +731,7 @@ export default function SampleForm() {
                 {errors.nitrate && <span className="error-message">{errors.nitrate}</span>}
               </div>
               <div className="input-group">
-                <label htmlFor="calcium">Calcium ({MEASUREMENT_FIELDS.calcium.unit})</label>
+                <label htmlFor="calcium">{MEASUREMENT_FIELDS.calcium.label} ({MEASUREMENT_FIELDS.calcium.unit})</label>
                 <input
                   type="number"
                   id="calcium"
@@ -749,7 +749,7 @@ export default function SampleForm() {
             </div>
             <div className="input-row input-row-2 mb-md">
               <div className="input-group">
-                <label htmlFor="potassium">Potassium ({MEASUREMENT_FIELDS.potassium.unit})</label>
+                <label htmlFor="potassium">{MEASUREMENT_FIELDS.potassium.label} ({MEASUREMENT_FIELDS.potassium.unit})</label>
                 <input
                   type="number"
                   id="potassium"
@@ -765,7 +765,7 @@ export default function SampleForm() {
                 {errors.potassium && <span className="error-message">{errors.potassium}</span>}
               </div>
               <div className="input-group">
-                <label htmlFor="sodium">Sodium ({MEASUREMENT_FIELDS.sodium.unit})</label>
+                <label htmlFor="sodium">{MEASUREMENT_FIELDS.sodium.label} ({MEASUREMENT_FIELDS.sodium.unit})</label>
                 <input
                   type="number"
                   id="sodium"

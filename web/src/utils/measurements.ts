@@ -37,7 +37,7 @@ export const MEASUREMENT_FIELDS = {
   },
   nitrate: {
     key: 'nitrate',
-    label: 'Nitrate',
+    label: 'Nitrate (NO₃⁻)',
     unit: 'mg/L',
     min: 0,
     max: 6200,
@@ -48,7 +48,7 @@ export const MEASUREMENT_FIELDS = {
   },
   calcium: {
     key: 'calcium',
-    label: 'Calcium',
+    label: 'Calcium (Ca²⁺)',
     unit: 'mg/L',
     min: 0,
     max: 4000,
@@ -59,7 +59,7 @@ export const MEASUREMENT_FIELDS = {
   },
   potassium: {
     key: 'potassium',
-    label: 'Potassium',
+    label: 'Potassium (K⁺)',
     unit: 'mg/L',
     min: 0,
     max: 2000,
@@ -70,7 +70,7 @@ export const MEASUREMENT_FIELDS = {
   },
   sodium: {
     key: 'sodium',
-    label: 'Sodium',
+    label: 'Sodium (Na⁺)',
     unit: 'mg/L',
     min: 0,
     max: 2000,
